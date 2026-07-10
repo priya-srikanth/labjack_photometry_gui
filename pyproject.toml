@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "labjack-photometry-gui"
+version = "0.1.0"
+description = "Python GUI for LabJack T7 fiber photometry acquisition and LED modulation."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "h5py>=3.11",
+    "numpy>=1.26",
+    "PySide6>=6.6",
+    "pyqtgraph>=0.13",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.5",
+]
+hardware = [
+    "labjack-ljm>=1.23",
+]
+
+[project.scripts]
+photometry-gui = "labjack_photometry_gui.app:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
