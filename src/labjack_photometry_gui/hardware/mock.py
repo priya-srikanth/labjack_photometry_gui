@@ -43,16 +43,20 @@ class MockBackend(PhotometryBackend):
         t = self._next_t + np.arange(n_samples) / sample_rate
         self._next_t = float(t[-1] + 1.0 / sample_rate)
 
+        modulations = [mod for mod in self.config.modulations if mod.enabled]
         waveforms = {
             mod.output.upper(): mod.offset_v
             + mod.amplitude_v * np.sin(2.0 * np.pi * mod.frequency_hz * t)
-            for mod in self.config.modulations
-            if mod.enabled
+            for mod in modulations
         }
-        first_waveform = next(iter(waveforms.values()), np.zeros_like(t))
-        second_waveform = (
-            list(waveforms.values())[1] if len(waveforms) > 1 else first_waveform
-        )
+        centered_waveforms = {
+            mod.output.upper(): waveforms[mod.output.upper()] - mod.offset_v
+            for mod in modulations
+        }
+        first_output = modulations[0].output.upper() if modulations else ""
+        second_output = modulations[1].output.upper() if len(modulations) > 1 else first_output
+        first_waveform = centered_waveforms.get(first_output, np.zeros_like(t))
+        second_waveform = centered_waveforms.get(second_output, first_waveform)
 
         analog: dict[str, np.ndarray] = {}
         for index, channel in enumerate(self.config.analog_inputs):
@@ -64,6 +68,7 @@ class MockBackend(PhotometryBackend):
                 channel.name,
                 channel.channel,
                 waveforms,
+                centered_waveforms,
                 first_waveform,
                 second_waveform,
                 slow,
@@ -87,6 +92,7 @@ class MockBackend(PhotometryBackend):
         name: str,
         channel: str,
         waveforms: dict[str, np.ndarray],
+        centered_waveforms: dict[str, np.ndarray],
         first_waveform: np.ndarray,
         second_waveform: np.ndarray,
         slow: np.ndarray,
@@ -99,14 +105,18 @@ class MockBackend(PhotometryBackend):
             if output in upper_label:
                 return waveform + 0.005 * noise
 
+        for output, centered in centered_waveforms.items():
+            if output.replace("DAC", "") in label and "monitor" in label:
+                return 2.0 + centered + 0.005 * noise
+
         if any(token in label for token in ("green", "gcamp", "470")):
-            return 0.5 + 0.08 * (first_waveform - np.mean(first_waveform)) + slow + noise
+            return 0.5 + 0.35 * first_waveform + 0.015 * slow + 0.004 * noise
         if any(token in label for token in ("red", "rdlight", "565", "560")):
-            return 0.5 + 0.08 * (second_waveform - np.mean(second_waveform)) + slow + noise
+            return 0.5 + 0.35 * second_waveform + 0.015 * slow + 0.004 * noise
         if "lick" in label:
             return 0.2 + 0.15 * (slow > 0.045).astype(float) + 0.02 * noise
 
-        mixed = 0.5 * (first_waveform - np.mean(first_waveform))
+        mixed = 0.5 * first_waveform
         if second_waveform is not first_waveform:
-            mixed += 0.5 * (second_waveform - np.mean(second_waveform))
-        return 0.5 + 0.04 * mixed + slow + noise
+            mixed += 0.5 * second_waveform
+        return 0.5 + 0.15 * mixed + 0.02 * slow + 0.005 * noise
