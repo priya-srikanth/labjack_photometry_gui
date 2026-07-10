@@ -14,7 +14,7 @@ The first implementation supports a mock backend so the interface can run withou
 The live display uses WaveSurfer-style stacked strip charts: one row per signal, with the channel label on the left, the raw trace in the center, and the latest value on the right.
 Strip-chart row height scales with the window so all channels stay visible when possible, with scroll bars as fallback for very small windows.
 Analog and digital input maps are editable in the GUI, so channels can be reassigned at the bench before starting a session.
-Input rows can be reordered by dragging rows or using the Up/Down buttons; the live display and saved channel order follow the table order.
+Input rows can be reordered by dragging rows or using the Up/Down buttons. The Display Order tab can interleave analog and digital rows for the live strip-chart view.
 GUI settings can be saved to or loaded from a JSON config file, including channel maps, display order, modulation settings, sample rate, backend, and output settings.
 
 ## Planned Rig Signals

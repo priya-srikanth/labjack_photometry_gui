@@ -152,6 +152,7 @@ class MainWindow(QtWidgets.QMainWindow):
         ] = []
         self.strip_charts: dict[str, SignalStripChart] = {}
         self.chart_scroll_area: QtWidgets.QScrollArea | None = None
+        self.display_order: list[str] = []
 
         self._build_ui()
 
@@ -260,6 +261,7 @@ class MainWindow(QtWidgets.QMainWindow):
         map_tabs = QtWidgets.QTabWidget()
         map_tabs.addTab(self._build_channel_table("analog"), "Analog In")
         map_tabs.addTab(self._build_channel_table("digital"), "Digital In")
+        map_tabs.addTab(self._build_display_order_tab(), "Display Order")
         controls_layout.addWidget(map_tabs, stretch=1)
 
         layout.addWidget(controls)
@@ -355,6 +357,38 @@ class MainWindow(QtWidgets.QMainWindow):
         layout.addWidget(buttons)
         return container
 
+    def _build_display_order_tab(self) -> QtWidgets.QWidget:
+        container = QtWidgets.QWidget()
+        layout = QtWidgets.QVBoxLayout(container)
+        self.display_order_list = QtWidgets.QListWidget()
+        self.display_order_list.setSelectionMode(
+            QtWidgets.QAbstractItemView.SelectionMode.SingleSelection
+        )
+        self.display_order_list.setDragDropMode(QtWidgets.QAbstractItemView.DragDropMode.InternalMove)
+        self.display_order_list.setDefaultDropAction(QtCore.Qt.DropAction.MoveAction)
+        layout.addWidget(self.display_order_list)
+
+        buttons = QtWidgets.QWidget()
+        button_layout = QtWidgets.QHBoxLayout(buttons)
+        button_layout.setContentsMargins(0, 0, 0, 0)
+        refresh_button = QtWidgets.QPushButton("Refresh")
+        up_button = QtWidgets.QPushButton("Up")
+        down_button = QtWidgets.QPushButton("Down")
+        apply_button = QtWidgets.QPushButton("Apply")
+        refresh_button.clicked.connect(self._refresh_display_order_from_tables)
+        up_button.clicked.connect(lambda: self._move_selected_display_order_row(-1))
+        down_button.clicked.connect(lambda: self._move_selected_display_order_row(1))
+        apply_button.clicked.connect(self._apply_channel_map_preview)
+        button_layout.addWidget(refresh_button)
+        button_layout.addWidget(up_button)
+        button_layout.addWidget(down_button)
+        button_layout.addStretch()
+        button_layout.addWidget(apply_button)
+        layout.addWidget(buttons)
+
+        self._refresh_display_order_from_tables()
+        return container
+
     def _populate_channel_table(
         self,
         table: QtWidgets.QTableWidget,
@@ -435,6 +469,60 @@ class MainWindow(QtWidgets.QMainWindow):
         self._rebuild_strip_charts()
         self.statusBar().showMessage("Applied channel map")
 
+    def _refresh_display_order_from_tables(self) -> None:
+        existing_order = self._display_order_keys_from_list()
+        current_keys = self._display_keys_from_tables()
+        ordered = [key for key in existing_order if key in current_keys]
+        ordered.extend(key for key in current_keys if key not in ordered)
+        self._set_display_order_list(ordered)
+
+    def _display_keys_from_tables(self) -> list[str]:
+        keys = []
+        if hasattr(self, "analog_table"):
+            keys.extend(
+                f"ai:{name}"
+                for enabled, name, _channel in self._table_rows(self.analog_table)
+                if enabled
+            )
+        if hasattr(self, "digital_table"):
+            keys.extend(
+                f"di:{name}"
+                for enabled, name, _channel in self._table_rows(self.digital_table)
+                if enabled
+            )
+        return keys
+
+    def _display_order_keys_from_list(self) -> list[str]:
+        keys = []
+        if not hasattr(self, "display_order_list"):
+            return keys
+        for row in range(self.display_order_list.count()):
+            item = self.display_order_list.item(row)
+            key = item.data(QtCore.Qt.ItemDataRole.UserRole)
+            if isinstance(key, str):
+                keys.append(key)
+        return keys
+
+    def _set_display_order_list(self, keys: list[str]) -> None:
+        if not hasattr(self, "display_order_list"):
+            self.display_order = keys
+            return
+        self.display_order_list.clear()
+        for key in keys:
+            item = QtWidgets.QListWidgetItem(_display_key_label(key))
+            item.setData(QtCore.Qt.ItemDataRole.UserRole, key)
+            self.display_order_list.addItem(item)
+        self.display_order = keys
+
+    def _move_selected_display_order_row(self, offset: int) -> None:
+        row = self.display_order_list.currentRow()
+        target = row + offset
+        if row < 0 or target < 0 or target >= self.display_order_list.count():
+            return
+        item = self.display_order_list.takeItem(row)
+        self.display_order_list.insertItem(target, item)
+        self.display_order_list.setCurrentRow(target)
+
     def _config_from_controls(self) -> RigConfig:
         mods = []
         for base, controls in zip(self.config.modulations, self.mod_controls, strict=True):
@@ -464,6 +552,14 @@ class MainWindow(QtWidgets.QMainWindow):
             for enabled, name, channel in self._table_rows(self.digital_table)
         )
         _validate_unique_enabled_names(analog_inputs, digital_inputs)
+        current_keys = _display_keys_from_config(analog_inputs, digital_inputs)
+        requested_order = [
+            key
+            for key in self._display_order_keys_from_list()
+            if key in current_keys
+        ]
+        requested_order.extend(key for key in current_keys if key not in requested_order)
+        self.display_order = requested_order
 
         return RigConfig(
             sample_rate_hz=self.sample_rate_spin.value(),
@@ -587,6 +683,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 "output_dir": self.output_dir_edit.text(),
                 "session_name": self.session_name_edit.text(),
                 "save_h5": self.save_check.isChecked(),
+                "display_order": self._display_order_keys_from_list(),
             },
         )
         self.statusBar().showMessage(f"Saved config: {path}")
@@ -637,6 +734,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self._populate_channel_table(self.analog_table, config.analog_inputs)
         self._populate_channel_table(self.digital_table, config.digital_inputs)
+        display_order = ui.get("display_order", [])
+        if not isinstance(display_order, list):
+            display_order = []
+        current_keys = _display_keys_from_config(config.analog_inputs, config.digital_inputs)
+        ordered = [key for key in display_order if isinstance(key, str) and key in current_keys]
+        ordered.extend(key for key in current_keys if key not in ordered)
+        self._set_display_order_list(ordered)
         self._rebuild_strip_charts()
 
     def _rebuild_strip_charts(self) -> None:
@@ -648,27 +752,30 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.strip_charts.clear()
         color_index = 0
-        for channel in self.config.analog_inputs:
-            if not channel.enabled:
-                continue
-            chart = SignalStripChart(
-                name=channel.name,
-                channel=channel.channel,
-                color=pg.intColor(color_index).name(),
-                is_digital=False,
-            )
-            self.strip_charts[channel.name] = chart
-            self.chart_layout.addWidget(chart)
-            color_index += 1
+        analog_by_key = {
+            f"ai:{channel.name}": channel
+            for channel in self.config.analog_inputs
+            if channel.enabled
+        }
+        digital_by_key = {
+            f"di:{channel.name}": channel
+            for channel in self.config.digital_inputs
+            if channel.enabled
+        }
+        current_keys = [*analog_by_key, *digital_by_key]
+        order = [key for key in self.display_order if key in current_keys]
+        order.extend(key for key in current_keys if key not in order)
+        self.display_order = order
+        self._set_display_order_list(order)
 
-        for channel in self.config.digital_inputs:
-            if not channel.enabled:
-                continue
+        for key in order:
+            is_digital = key.startswith("di:")
+            channel = digital_by_key[key] if is_digital else analog_by_key[key]
             chart = SignalStripChart(
                 name=channel.name,
                 channel=channel.channel,
                 color=pg.intColor(color_index).name(),
-                is_digital=True,
+                is_digital=is_digital,
             )
             self.strip_charts[channel.name] = chart
             self.chart_layout.addWidget(chart)
@@ -728,3 +835,19 @@ def _validate_unique_enabled_names(
     duplicates = sorted({name for name in names if names.count(name) > 1})
     if duplicates:
         raise ValueError(f"Enabled channel names must be unique: {', '.join(duplicates)}")
+
+
+def _display_keys_from_config(
+    analog_inputs: tuple[AnalogInputChannel, ...],
+    digital_inputs: tuple[DigitalInputChannel, ...],
+) -> list[str]:
+    return [
+        *(f"ai:{channel.name}" for channel in analog_inputs if channel.enabled),
+        *(f"di:{channel.name}" for channel in digital_inputs if channel.enabled),
+    ]
+
+
+def _display_key_label(key: str) -> str:
+    prefix, _, name = key.partition(":")
+    label = "AI" if prefix == "ai" else "DI" if prefix == "di" else prefix.upper()
+    return f"{label}: {name}"

@@ -63,7 +63,7 @@ Recommended stream scan list:
 The behavior Teensy should share ground with the LabJack. TTL lines should be 0-3.3 V or 0-5 V. Do not feed TTL into `DAC0` or `DAC1`.
 
 The GUI input map is editable at runtime. Users can reassign physical LabJack channels, rename signals, enable/disable rows, add spare channels, and apply the map to rebuild the live strip-chart display before recording.
-Input channel display order follows the analog/digital table order. Rows can be dragged or moved with Up/Down buttons before applying the map.
+Input acquisition order follows the analog/digital table order. The separate Display Order tab controls the live strip-chart order and can interleave analog and digital signals, such as detector rows with behavior TTLs.
 
 ## Config Files
 
