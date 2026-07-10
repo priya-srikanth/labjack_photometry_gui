@@ -38,11 +38,11 @@ If each wavelength is split to left/right hemisphere LEDs, both hemispheres rece
 | --- | --- |
 | Left green detector | `AIN0` |
 | Right green detector | `AIN1` |
-| Left red detector | `AIN2` |
-| Right red detector | `AIN3` |
-| Lick analog board | `AIN4` |
-| DAC0 loopback monitor | `AIN5` |
-| DAC1 loopback monitor | `AIN6` |
+| DAC0 loopback monitor | `AIN2` |
+| DAC1 loopback monitor | `AIN3` |
+| Left red detector | `AIN4` |
+| Right red detector | `AIN5` |
+| Lick analog board | `AIN6` |
 | Behavior sync | `FIO0` |
 | Position bit 0 | `FIO1` |
 | Position bit 1 | `FIO2` |

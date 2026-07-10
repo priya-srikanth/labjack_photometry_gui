@@ -49,11 +49,11 @@ class RigConfig:
         default_factory=lambda: (
             AnalogInputChannel("Left green detector", "AIN0"),
             AnalogInputChannel("Right green detector", "AIN1"),
-            AnalogInputChannel("Left red detector", "AIN2"),
-            AnalogInputChannel("Right red detector", "AIN3"),
-            AnalogInputChannel("Lick analog", "AIN4"),
-            AnalogInputChannel("DAC0 monitor", "AIN5"),
-            AnalogInputChannel("DAC1 monitor", "AIN6"),
+            AnalogInputChannel("DAC0 monitor", "AIN2"),
+            AnalogInputChannel("DAC1 monitor", "AIN3"),
+            AnalogInputChannel("Left red detector", "AIN4"),
+            AnalogInputChannel("Right red detector", "AIN5"),
+            AnalogInputChannel("Lick analog", "AIN6"),
         )
     )
     digital_inputs: tuple[DigitalInputChannel, ...] = field(

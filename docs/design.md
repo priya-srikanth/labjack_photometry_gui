@@ -54,9 +54,10 @@ Four independent carriers would require one of:
 
 Recommended stream scan list:
 
-- detector analog channels: `AIN0` to `AIN3`
-- lick analog channel: `AIN4`
-- optional DAC loopback monitors: `AIN5` and `AIN6`
+- green detector analog channels: `AIN0` and `AIN1`
+- optional DAC loopback monitors: `AIN2` and `AIN3`
+- red detector analog channels: `AIN4` and `AIN5`
+- lick analog channel: `AIN6`
 - behavior digital lines packed/read as digital state channels
 
 The behavior Teensy should share ground with the LabJack. TTL lines should be 0-3.3 V or 0-5 V. Do not feed TTL into `DAC0` or `DAC1`.

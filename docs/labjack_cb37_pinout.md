@@ -18,8 +18,8 @@ If recording the actual command waveforms, split or loop back:
 
 | Loopback | Connect from | Connect to |
 | --- | --- | --- |
-| 470 nm command monitor | `DAC0` | `AIN5` |
-| 565 nm command monitor | `DAC1` | `AIN6` |
+| 470 nm command monitor | `DAC0` | `AIN2` |
+| 565 nm command monitor | `DAC1` | `AIN3` |
 
 ## Analog Inputs
 
@@ -27,11 +27,11 @@ If recording the actual command waveforms, split or loop back:
 | --- | --- | --- | --- |
 | Left GCaMP8 detector amplifier | `AIN0` | pin `37` | amplifier voltage output |
 | Right GCaMP8 detector amplifier | `AIN1` | pin `18` | amplifier voltage output |
-| Left rdLight detector amplifier | `AIN2` | pin `36` | amplifier voltage output |
-| Right rdLight detector amplifier | `AIN3` | pin `17` | amplifier voltage output |
-| Lick analog board | `AIN4` | pin `35` | lick board analog output |
-| DAC0 monitor | `AIN5` | pin `16` | optional `DAC0` loopback |
-| DAC1 monitor | `AIN6` | pin `34` | optional `DAC1` loopback |
+| DAC0 monitor | `AIN2` | pin `36` | optional `DAC0` loopback |
+| DAC1 monitor | `AIN3` | pin `17` | optional `DAC1` loopback |
+| Left rdLight detector amplifier | `AIN4` | pin `35` | amplifier voltage output |
+| Right rdLight detector amplifier | `AIN5` | pin `16` | amplifier voltage output |
+| Lick analog board | `AIN6` | pin `34` | lick board analog output |
 | Analog ground/reference | `GND` | pins `1`, `9`, `20`, `28`, `30` | amplifier/lick board ground |
 
 Unused analog inputs can float and show meaningless voltages in Kipling. That is normal.
@@ -76,4 +76,3 @@ Before connecting LED drivers:
 3. Confirm `DAC0` and `DAC1` never exceed the LED driver modulation input range.
 4. Confirm detector amplifier outputs on `AIN0` to `AIN3` stay within LabJack input range.
 5. Confirm Teensy TTLs toggle the expected `FIO` channels.
-
