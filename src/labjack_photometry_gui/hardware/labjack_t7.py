@@ -116,18 +116,23 @@ class LabJackT7Backend(PhotometryBackend):
                 self.input_labels.append(channel.name)
                 self.input_kinds.append("analog")
 
-        direction_names = []
-        direction_values = []
+        direction_updates: dict[str, set[int]] = {}
         for channel in self.config.digital_inputs:
             if channel.enabled:
-                self.input_names.append(channel.channel)
+                input_name = channel.channel.upper()
+                self.input_names.append(input_name)
                 self.input_labels.append(channel.name)
                 self.input_kinds.append("digital")
-                direction_names.append(f"{channel.channel}_DIRECTION")
-                direction_values.append(0)
+                direction = _digital_direction_register(input_name)
+                if direction is not None:
+                    register, bit = direction
+                    direction_updates.setdefault(register, set()).add(bit)
 
-        if direction_names:
-            self.ljm.eWriteNames(self.handle, len(direction_names), direction_names, direction_values)
+        for register, bits in direction_updates.items():
+            current_value = int(self.ljm.eReadName(self.handle, register))
+            for bit in bits:
+                current_value &= ~(1 << bit)
+            self.ljm.eWriteName(self.handle, register, current_value)
 
     def _configure_stream_out(self) -> list[str]:
         assert self.handle is not None
@@ -203,3 +208,28 @@ def _best_periodic_buffer(
             best_cycles = cycles
             best_error = error
     return best_samples, best_cycles
+
+
+def _digital_direction_register(channel_name: str) -> tuple[str, int] | None:
+    for prefix in ("FIO", "EIO", "CIO", "MIO"):
+        if channel_name.startswith(prefix):
+            suffix = channel_name.removeprefix(prefix)
+            if suffix.isdigit():
+                return f"{prefix}_DIRECTION", int(suffix)
+
+    if not channel_name.startswith("DIO"):
+        return None
+    suffix = channel_name.removeprefix("DIO")
+    if not suffix.isdigit():
+        return None
+
+    dio_number = int(suffix)
+    if 0 <= dio_number <= 7:
+        return "FIO_DIRECTION", dio_number
+    if 8 <= dio_number <= 15:
+        return "EIO_DIRECTION", dio_number - 8
+    if 16 <= dio_number <= 19:
+        return "CIO_DIRECTION", dio_number - 16
+    if 20 <= dio_number <= 22:
+        return "MIO_DIRECTION", dio_number - 20
+    return None
