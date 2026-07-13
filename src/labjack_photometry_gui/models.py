@@ -58,13 +58,13 @@ class RigConfig:
     )
     digital_inputs: tuple[DigitalInputChannel, ...] = field(
         default_factory=lambda: (
-            DigitalInputChannel("Sync", "FIO0"),
-            DigitalInputChannel("Position bit 0", "FIO1"),
-            DigitalInputChannel("Position bit 1", "FIO2"),
-            DigitalInputChannel("Position bit 2", "FIO3"),
-            DigitalInputChannel("Position strobe", "FIO4"),
-            DigitalInputChannel("Cue", "FIO5"),
-            DigitalInputChannel("Reward", "FIO6"),
+            DigitalInputChannel("Sync", "FIO0", enabled=False),
+            DigitalInputChannel("Position bit 0", "FIO1", enabled=False),
+            DigitalInputChannel("Position bit 1", "FIO2", enabled=False),
+            DigitalInputChannel("Position bit 2", "FIO3", enabled=False),
+            DigitalInputChannel("Position strobe", "FIO4", enabled=False),
+            DigitalInputChannel("Cue", "FIO5", enabled=False),
+            DigitalInputChannel("Reward", "FIO6", enabled=False),
         )
     )
 

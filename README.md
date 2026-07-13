@@ -51,6 +51,8 @@ If each wavelength is split to left/right hemisphere LEDs, both hemispheres rece
 | Cue TTL | `FIO5` |
 | Reward TTL | `FIO6` |
 
+Behavior digital rows are present in the default map but disabled by default. Enable them when the Teensy/behavior system is connected and sharing ground with the LabJack.
+
 ## Frequency Plan
 
 Use prime-number carrier frequencies to reduce harmonic overlap and accidental common factors. Example starting values:

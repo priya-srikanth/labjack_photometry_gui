@@ -51,6 +51,8 @@ Unused analog inputs can float and show meaningless voltages in Kipling. That is
 
 TTL should be `0-3.3 V` or `0-5 V`. The Teensy and LabJack must share ground.
 
+If the behavior Teensy is not connected or not driving a line, the corresponding LabJack digital input can float and appear to toggle randomly. Disable unused digital rows in the GUI, or add proper pull-down/pull-up wiring so each line has a defined idle state.
+
 ## Spare CB37 Channels
 
 | LabJack channel | CB37 / DB37 pin | Notes |
