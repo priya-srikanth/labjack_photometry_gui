@@ -187,6 +187,16 @@ class LabJackT7Backend(PhotometryBackend):
             self._last_parse_mode = f"input_width:{input_width}"
             return data.reshape((-1, input_width))
 
+        if hardware_width > input_width and data.size % hardware_width == 0:
+            # Stream-out entries can be present in the raw LJM block even
+            # though they are not user-visible input channels. Drop them only
+            # when the block exactly matches the hardware scan width.
+            arr = data.reshape((-1, hardware_width))
+            self._last_parse_mode = f"hardware_width:{hardware_width}"
+            if self.config.stream_out_scan_mode == "leading":
+                return arr[:, self.stream_out_count : self.stream_out_count + input_width]
+            return arr[:, :input_width]
+
         complete_input_values = data.size - (data.size % input_width)
         if (
             complete_input_values >= input_width
@@ -196,17 +206,6 @@ class LabJackT7Backend(PhotometryBackend):
                 f"input_width_trimmed:{input_width},dropped:{data.size - complete_input_values}"
             )
             return data[:complete_input_values].reshape((-1, input_width))
-
-        if hardware_width > input_width and data.size % hardware_width == 0:
-            # Some LJM/T7 stream-out configurations report extra scan entries in
-            # block sizing. Use this only when the data cannot be parsed as the
-            # enabled input scan list, otherwise ambiguous block sizes can be
-            # reshaped into a plausible but interleaved matrix.
-            arr = data.reshape((-1, hardware_width))
-            self._last_parse_mode = f"hardware_width:{hardware_width}"
-            if self.config.stream_out_scan_mode == "leading":
-                return arr[:, self.stream_out_count : self.stream_out_count + input_width]
-            return arr[:, :input_width]
 
         raise RuntimeError(
             "Unexpected LabJack stream read size: "

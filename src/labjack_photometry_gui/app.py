@@ -128,7 +128,7 @@ class SignalStripChart(QtWidgets.QWidget):
 
         y_for_plot = self.y_values
         if self.suppress_short_low_glitches and not self.is_digital:
-            y_for_plot = _suppress_short_low_analog_glitches(self.x_values, self.y_values)
+            y_for_plot = _analog_lick_trace_for_display(self.x_values, self.y_values)
 
         x_plot, y_plot = _decimate_for_display(
             self.x_values,
@@ -1161,10 +1161,10 @@ def _suppress_short_low_digital_glitches(
     return cleaned
 
 
-def _suppress_short_low_analog_glitches(
+def _analog_lick_trace_for_display(
     x: np.ndarray,
     values: np.ndarray,
-    max_width_s: float = 0.003,
+    min_low_width_s: float = 0.008,
 ) -> np.ndarray:
     if values.size < 3:
         return values
@@ -1182,25 +1182,25 @@ def _suppress_short_low_analog_glitches(
 
     threshold = low_level + 0.5 * (high_level - low_level)
     high_state = values >= threshold
-    max_samples = max(1, int(np.ceil(max_width_s / sample_period)))
-    cleaned = values.copy()
+    min_low_samples = max(1, int(np.ceil(min_low_width_s / sample_period)))
+    cleaned_state = high_state.copy()
 
     start = 0
-    while start < high_state.size:
+    while start < cleaned_state.size:
         stop = start + 1
-        while stop < high_state.size and high_state[stop] == high_state[start]:
+        while stop < cleaned_state.size and cleaned_state[stop] == cleaned_state[start]:
             stop += 1
-        run_is_low = not bool(high_state[start])
+        run_is_low = not bool(cleaned_state[start])
         surrounded_by_high = (
             start > 0
-            and stop < high_state.size
-            and bool(high_state[start - 1])
-            and bool(high_state[stop])
+            and stop < cleaned_state.size
+            and bool(cleaned_state[start - 1])
+            and bool(cleaned_state[stop])
         )
-        if run_is_low and surrounded_by_high and stop - start <= max_samples:
-            cleaned[start:stop] = 0.5 * (cleaned[start - 1] + cleaned[stop])
+        if run_is_low and surrounded_by_high and stop - start < min_low_samples:
+            cleaned_state[start:stop] = True
         start = stop
-    return cleaned
+    return np.where(cleaned_state, high_level, low_level)
 
 
 def _combine_plot_blocks(blocks: list[AcquisitionBlock]) -> AcquisitionBlock:
