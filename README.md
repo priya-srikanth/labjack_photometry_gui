@@ -9,14 +9,14 @@ This project is intended for a rig with:
 - 1 analog lick-board input
 - multiple behavior TTL inputs from a Teensy
 
-The first implementation supports a mock backend so the interface can run without hardware. The LabJack backend is structured for `labjack-ljm` streaming and will be filled in incrementally.
+The GUI supports a mock backend for offline testing and a LabJack T7 backend using `labjack-ljm` for hardware acquisition and DAC stream-out.
 
 The live display uses WaveSurfer-style stacked strip charts: one row per signal, with the channel label on the left, the raw trace in the center, and the latest value on the right.
 Strip-chart row height scales with the window so all channels stay visible when possible, with scroll bars as fallback for very small windows.
 Analog and digital input maps are editable in the GUI, so channels can be reassigned at the bench before starting a session.
 Analog rows also have editable display min/max voltage columns. Use these to set detector rows, DAC monitor rows, and analog TTL-like rows to sensible visual ranges, such as `-1` to `6 V` for a TTL carried on an `AIN` input.
 Input rows can be reordered by dragging rows or using the Up/Down buttons. The Display Order tab can interleave analog and digital rows for the live strip-chart view.
-GUI settings can be saved to or loaded from a JSON config file, including channel maps, display order, modulation settings, sample rate, backend, and output settings.
+GUI settings can be saved to or loaded from a JSON config file, including channel maps, display order, modulation settings, sample rate, backend, and output settings. Config loading intentionally does not overwrite the current session prefix. Each saved recording uses the current prefix plus a fresh timestamp.
 
 ## Planned Rig Signals
 
@@ -92,6 +92,16 @@ For development tools too:
 
 For hardware mode, install LabJack's native LJM software first. The setup script installs the Python wrapper, but the native LabJack driver/software is a separate dependency.
 
+To update an existing checkout on a rig computer:
+
+```powershell
+git pull
+.\scripts\setup_windows.ps1
+.\scripts\run_gui.ps1
+```
+
+Close any already-running GUI before testing updates; the running process will not pick up changed source files.
+
 ## Run
 
 ```powershell
@@ -110,9 +120,23 @@ Set a modulation frequency to `0 Hz` to hold that DAC at the offset voltage for 
 
 The `AIN settle` setting adds settling time between multiplexed analog input readings. Increase it, or lower the sample rate, if changing DAC loopback signals appear to bleed into high-impedance or floating analog inputs.
 
-For LabJack stream-out troubleshooting, enable `Stream debug` before starting a run. The GUI writes a `data/labjack_stream_debug_*.txt` file with the raw `eStreamRead` framing, scan-list names, candidate reshape widths, and first raw values. The `Stream out` selector is diagnostic: `Inputs only` keeps stream-out entries out of `eStreamStart`; `Trailing` appends `STREAM_OUT#` after inputs; `Leading` puts `STREAM_OUT#` before inputs.
+For nonzero LabJack DAC carriers, use `Trailing` or `Leading` stream-out mode. `Inputs only (no DAC waveform)` is for static/no-waveform diagnostics. `Trailing` appends `STREAM_OUT#` after inputs; `Leading` puts `STREAM_OUT#` before inputs. `Trailing` is the recommended default.
+
+For LabJack stream-out troubleshooting, enable `Stream debug` before starting a run. The GUI writes a `data/labjack_stream_debug_*.txt` file with the raw `eStreamRead` framing, scan-list names, candidate reshape widths, and first raw values. Leave `Stream debug` off during real long sessions to avoid extra file I/O.
 
 When stopping or disconnecting from LabJack hardware mode, the app explicitly writes `0 V` to `DAC0` and `DAC1` so LED driver modulation inputs return to a safe off command.
+
+## Recording Files
+
+Recordings are saved as HDF5 files in the selected output folder. Each run is named:
+
+```text
+<prefix>_YYYYMMDD_HHMMSS.h5
+```
+
+The HDF5 recorder appends as data are acquired, updates `samples_written`, and flushes periodically so a crash should usually leave a readable file up to the last flush. Analog data are stored as `float32`, digital data as `uint8`, and datasets use fast lossless HDF5 compression.
+
+Expected size depends on sample rate, channel count, and signal compressibility. For a typical `5000 Hz`, `7 analog + 8 digital`, 80-minute session, expect roughly 1 GB order-of-magnitude per recording.
 
 ## Development Notes
 

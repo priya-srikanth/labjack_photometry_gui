@@ -183,21 +183,6 @@ class LabJackT7Backend(PhotometryBackend):
         if input_width == 0:
             return np.empty((0, 0), dtype=float)
 
-        if (
-            self.stream_out_count > 1
-            and hardware_width > input_width
-            and data.size % hardware_width == 0
-        ):
-            # With two active DAC stream-outs, LJM/T7 has been observed to
-            # include stream-out slots in the returned block. Parse those
-            # hardware rows first so the STREAM_OUT slots do not shift into
-            # analog or digital input channels.
-            arr = data.reshape((-1, hardware_width))
-            self._last_parse_mode = f"hardware_width:{hardware_width}"
-            if self.config.stream_out_scan_mode == "leading":
-                return arr[:, self.stream_out_count : self.stream_out_count + input_width]
-            return arr[:, :input_width]
-
         if data.size % input_width == 0:
             self._last_parse_mode = f"input_width:{input_width}"
             return data.reshape((-1, input_width))
@@ -234,15 +219,7 @@ class LabJackT7Backend(PhotometryBackend):
         )
 
     def _set_scans_per_read(self) -> None:
-        target_scans = max(1, int(self.config.sample_rate_hz * 0.05))
-        input_width = max(1, len(self.input_names))
-        hardware_width = max(1, len(self.hardware_scan_names))
-        if input_width == hardware_width:
-            self.scans_per_read = target_scans
-            return
-
-        factor = input_width // math.gcd(input_width, hardware_width)
-        self.scans_per_read = max(factor, math.ceil(target_scans / factor) * factor)
+        self.scans_per_read = max(1, int(self.config.sample_rate_hz * 0.05))
 
     def _configure_stream_debug(
         self,

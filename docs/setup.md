@@ -2,6 +2,16 @@
 
 This project is designed to run from a local Python virtual environment so the rig computer does not depend on global Python packages.
 
+## What Gets Installed
+
+The setup script creates `.venv` inside the repository and installs this checkout in editable mode. The dependency source of truth is `pyproject.toml`:
+
+- GUI/runtime: `numpy`, `h5py`, `PySide6`, `pyqtgraph`
+- Hardware extra: `labjack-ljm`
+- Development extra: `ruff`
+
+The Python package `labjack-ljm` is only the Python wrapper. Real LabJack hardware mode also requires LabJack's native LJM driver/software to be installed separately.
+
 ## Windows Quick Setup
 
 1. Install Python 3.11 or newer.
@@ -38,6 +48,11 @@ For mock/demo mode only, without the Python LabJack wrapper:
 .\scripts\run_gui.ps1
 ```
 
+6. In the GUI:
+   - Use `Mock` backend for a software-only smoke test.
+   - Use `LabJack T7` backend only after LJM is installed and the T7 is visible in Kipling.
+   - For nonzero DAC carriers, use `Trailing` stream-out mode unless actively debugging.
+
 ## Manual Setup
 
 ```powershell
@@ -48,7 +63,19 @@ py -3.12 -m venv .venv
 .\.venv\Scripts\photometry-gui.exe
 ```
 
-Use `requirements-dev.txt` if you also want development tools.
+Use `requirements.txt` for mock-only GUI use. Use `requirements-dev.txt` if you also want development tools.
+
+## Updating An Existing Rig Computer
+
+Close the GUI, then:
+
+```powershell
+git pull
+.\scripts\setup_windows.ps1
+.\scripts\run_gui.ps1
+```
+
+Rerunning setup is safe; it refreshes the editable install and dependencies inside `.venv`.
 
 ## Dependency Files
 
@@ -70,9 +97,12 @@ After setup:
 ```powershell
 .\.venv\Scripts\python.exe -c "import labjack_photometry_gui; print(labjack_photometry_gui.__version__)"
 .\.venv\Scripts\python.exe -c "from labjack import ljm; print(hasattr(ljm, 'openS'))"
+.\.venv\Scripts\python.exe -m labjack_photometry_gui
 ```
 
-The second command should print `True` when the Python LabJack wrapper is installed. Hardware connection still depends on the native LabJack LJM software and a reachable T7.
+The second command should print `True` when the Python LabJack wrapper is installed. The third command launches the GUI. Hardware connection still depends on the native LabJack LJM software and a reachable T7.
+
+For a hardware check without starting a recording, open Kipling first and confirm the T7 connects over USB or Ethernet. Then launch the GUI, choose `LabJack T7`, set both carrier frequencies to `0 Hz`, and verify that changing DAC offsets moves the DAC monitor channels.
 
 ## Common Issues
 
@@ -83,3 +113,11 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 ```
 
 If `py` cannot find Python, use the full path to `python.exe` or reinstall Python with launcher/PATH support enabled.
+
+If hardware mode cannot import `labjack.ljm`, rerun:
+
+```powershell
+.\scripts\setup_windows.ps1
+```
+
+If `labjack.ljm` imports but cannot connect to the T7, install or repair the native LabJack LJM package and verify the device in Kipling.

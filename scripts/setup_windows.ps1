@@ -76,6 +76,14 @@ else {
 Write-Host "Installing project dependencies from $requirements..."
 Invoke-Checked $venvPython @("-m", "pip", "install", "--no-build-isolation", "-r", $requirements)
 
+Write-Host "Verifying package import..."
+Invoke-Checked $venvPython @("-c", "import labjack_photometry_gui; print('labjack_photometry_gui', labjack_photometry_gui.__version__)")
+
+if (-not $NoHardware) {
+    Write-Host "Verifying LabJack Python wrapper import..."
+    Invoke-Checked $venvPython @("-c", "from labjack import ljm; print('labjack.ljm OK')")
+}
+
 Write-Host ""
 Write-Host "Setup complete."
 Write-Host "Run the GUI with:"
