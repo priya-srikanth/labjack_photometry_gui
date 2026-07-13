@@ -89,12 +89,20 @@ class H5Recorder:
         digital_ds.resize((stop, len(self._digital_names)))
 
         time_ds[start:stop] = block.t_seconds
-        analog_ds[start:stop, :] = np.column_stack(
-            [block.analog.get(name, np.full(n_samples, np.nan)) for name in self._analog_names]
-        )
-        digital_ds[start:stop, :] = np.column_stack(
-            [block.digital.get(name, np.zeros(n_samples, dtype=np.uint8)) for name in self._digital_names]
-        )
+        if self._analog_names:
+            analog_ds[start:stop, :] = np.column_stack(
+                [
+                    block.analog.get(name, np.full(n_samples, np.nan))
+                    for name in self._analog_names
+                ]
+            )
+        if self._digital_names:
+            digital_ds[start:stop, :] = np.column_stack(
+                [
+                    block.digital.get(name, np.zeros(n_samples, dtype=np.uint8))
+                    for name in self._digital_names
+                ]
+            )
         self._samples_written = stop
 
     def close(self) -> None:
