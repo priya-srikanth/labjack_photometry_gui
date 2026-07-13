@@ -36,6 +36,7 @@ class LabJackT7Backend(PhotometryBackend):
         self.waveform_info: list[dict[str, float | int | str]] = []
         self.debug_log_path: str | None = None
         self.active_dac_outputs: set[str] = set()
+        self._last_parse_mode = "none"
         self._next_t = 0.0
         self._running = False
         self._debug_reads_remaining = 0
@@ -70,6 +71,7 @@ class LabJackT7Backend(PhotometryBackend):
             self.hardware_scan_names = hardware_scan_names
             self.stream_out_count = len(stream_out_names)
             self.scan_names = list(self.input_names)
+            self._set_scans_per_read()
             self._configure_stream_debug(stream_out_names, hardware_scan_names)
             aggregate_rate = self.config.sample_rate_hz * len(hardware_scan_names)
             if aggregate_rate > 100_000:
@@ -143,12 +145,15 @@ class LabJackT7Backend(PhotometryBackend):
         assert self.handle is not None
         data, _device_backlog, _ljm_backlog = self.ljm.eStreamRead(self.handle)
         raw = np.asarray(data, dtype=float)
-        self._write_stream_debug(raw)
         input_width = len(self.input_names)
         if input_width == 0:
+            self._write_stream_debug(raw)
             return AcquisitionBlock(np.array([]), {}, {})
 
-        input_arr = self._input_array_from_stream_read(raw)
+        try:
+            input_arr = self._input_array_from_stream_read(raw)
+        finally:
+            self._write_stream_debug(raw)
         n_samples = input_arr.shape[0]
         t = self._next_t + np.arange(n_samples) / self.actual_scan_rate_hz
         self._next_t = float(t[-1] + 1.0 / self.actual_scan_rate_hz)
@@ -179,7 +184,18 @@ class LabJackT7Backend(PhotometryBackend):
             return np.empty((0, 0), dtype=float)
 
         if data.size % input_width == 0:
+            self._last_parse_mode = f"input_width:{input_width}"
             return data.reshape((-1, input_width))
+
+        complete_input_values = data.size - (data.size % input_width)
+        if (
+            complete_input_values >= input_width
+            and self.config.stream_out_scan_mode in {"leading", "trailing"}
+        ):
+            self._last_parse_mode = (
+                f"input_width_trimmed:{input_width},dropped:{data.size - complete_input_values}"
+            )
+            return data[:complete_input_values].reshape((-1, input_width))
 
         if hardware_width > input_width and data.size % hardware_width == 0:
             # Some LJM/T7 stream-out configurations report extra scan entries in
@@ -187,6 +203,7 @@ class LabJackT7Backend(PhotometryBackend):
             # enabled input scan list, otherwise ambiguous block sizes can be
             # reshaped into a plausible but interleaved matrix.
             arr = data.reshape((-1, hardware_width))
+            self._last_parse_mode = f"hardware_width:{hardware_width}"
             if self.config.stream_out_scan_mode == "leading":
                 return arr[:, self.stream_out_count : self.stream_out_count + input_width]
             return arr[:, :input_width]
@@ -200,6 +217,17 @@ class LabJackT7Backend(PhotometryBackend):
                 else "."
             )
         )
+
+    def _set_scans_per_read(self) -> None:
+        target_scans = max(1, int(self.config.sample_rate_hz * 0.05))
+        input_width = max(1, len(self.input_names))
+        hardware_width = max(1, len(self.hardware_scan_names))
+        if input_width == hardware_width:
+            self.scans_per_read = target_scans
+            return
+
+        factor = input_width // math.gcd(input_width, hardware_width)
+        self.scans_per_read = max(factor, math.ceil(target_scans / factor) * factor)
 
     def _configure_stream_debug(
         self,
@@ -257,6 +285,7 @@ class LabJackT7Backend(PhotometryBackend):
             f"input_width={input_width}",
             f"hardware_width={hardware_width}",
             f"stream_out_count={self.stream_out_count}",
+            f"last_parse_mode={self._last_parse_mode}",
             "remainders="
             + ", ".join(f"{width}:{data.size % width}" for width in candidate_widths),
             "first_values="
