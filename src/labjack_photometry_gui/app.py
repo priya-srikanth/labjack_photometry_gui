@@ -200,9 +200,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ain_settling_spin.setValue(self.config.ain_settling_us)
         self.ain_settling_spin.setSuffix(" us")
         self.stream_out_mode_combo = QtWidgets.QComboBox()
-        self.stream_out_mode_combo.addItem("Inputs only", "inputs_only")
         self.stream_out_mode_combo.addItem("Trailing", "trailing")
         self.stream_out_mode_combo.addItem("Leading", "leading")
+        self.stream_out_mode_combo.addItem("Inputs only (no DAC waveform)", "inputs_only")
         self.stream_out_mode_combo.setCurrentIndex(
             max(0, self.stream_out_mode_combo.findData(self.config.stream_out_scan_mode))
         )
@@ -705,6 +705,7 @@ class MainWindow(QtWidgets.QMainWindow):
             return
 
         self.config = self._config_from_controls()
+        self._coerce_stream_out_mode_for_modulation()
         try:
             self._start_recording()
         except Exception as exc:
@@ -761,6 +762,19 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.recorder is not None:
             self.recorder.close()
             self.recorder = None
+
+    def _coerce_stream_out_mode_for_modulation(self) -> None:
+        has_periodic_output = any(
+            mod.enabled and mod.output.upper() in {"DAC0", "DAC1"} and mod.frequency_hz > 0.0
+            for mod in self.config.modulations
+        )
+        if has_periodic_output and self.config.stream_out_scan_mode == "inputs_only":
+            mode_index = self.stream_out_mode_combo.findData("trailing")
+            self.stream_out_mode_combo.setCurrentIndex(max(0, mode_index))
+            self.config = self._config_from_controls()
+            self.statusBar().showMessage(
+                "Switched stream-out mode to Trailing so DAC waveforms are clocked."
+            )
 
     def _update_waveform_status(self, waveforms: object) -> None:
         if not hasattr(self, "waveform_status_label"):
