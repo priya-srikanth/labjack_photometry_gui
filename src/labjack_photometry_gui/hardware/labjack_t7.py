@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import math
+import queue
+import threading
 import numpy as np
 
 from labjack_photometry_gui.hardware.base import AcquisitionBlock, PhotometryBackend
@@ -31,6 +33,10 @@ class LabJackT7Backend(PhotometryBackend):
         self.active_dac_outputs: set[str] = set()
         self._next_t = 0.0
         self._running = False
+        self._read_thread: threading.Thread | None = None
+        self._stop_event = threading.Event()
+        self._block_queue: queue.Queue[AcquisitionBlock] = queue.Queue(maxsize=200)
+        self._stream_error: Exception | None = None
 
     def connect(self) -> None:
         self.handle = self.ljm.openS("T7", "ANY", "ANY")
@@ -72,6 +78,14 @@ class LabJackT7Backend(PhotometryBackend):
             )
             self._next_t = 0.0
             self._running = True
+            self._stream_error = None
+            self._stop_event.clear()
+            self._read_thread = threading.Thread(
+                target=self._read_loop,
+                name="labjack-stream-reader",
+                daemon=True,
+            )
+            self._read_thread.start()
         except Exception:
             self._safe_dac_shutdown()
             raise
@@ -79,7 +93,41 @@ class LabJackT7Backend(PhotometryBackend):
     def read(self) -> AcquisitionBlock:
         if self.handle is None or not self._running:
             return AcquisitionBlock(np.array([]), {}, {})
+        if self._stream_error is not None:
+            error = self._stream_error
+            self._stream_error = None
+            raise RuntimeError(f"LabJack stream read failed: {error}") from error
 
+        blocks = []
+        while True:
+            try:
+                blocks.append(self._block_queue.get_nowait())
+            except queue.Empty:
+                break
+
+        if not blocks:
+            return AcquisitionBlock(np.array([]), {}, {})
+        return _combine_blocks(blocks)
+
+    def _read_loop(self) -> None:
+        while not self._stop_event.is_set():
+            try:
+                block = self._read_one_block()
+            except Exception as exc:
+                if not self._stop_event.is_set():
+                    self._stream_error = exc
+                break
+            try:
+                self._block_queue.put(block, timeout=0.1)
+            except queue.Full:
+                if not self._stop_event.is_set():
+                    self._stream_error = RuntimeError(
+                        "Application queue is full; plotting or saving is slower than acquisition."
+                    )
+                break
+
+    def _read_one_block(self) -> AcquisitionBlock:
+        assert self.handle is not None
         data, _device_backlog, _ljm_backlog = self.ljm.eStreamRead(self.handle)
         num_addresses = len(self.scan_names)
         if num_addresses == 0:
@@ -103,12 +151,17 @@ class LabJackT7Backend(PhotometryBackend):
         return AcquisitionBlock(t, analog, digital)
 
     def stop(self) -> None:
+        self._stop_event.set()
         if self.handle is not None:
             try:
                 self.ljm.eStreamStop(self.handle)
             except Exception:
                 pass
             self._safe_dac_shutdown()
+        if self._read_thread is not None and self._read_thread.is_alive():
+            self._read_thread.join(timeout=1.0)
+        self._read_thread = None
+        self._clear_block_queue()
         self._running = False
 
     def _configure_inputs(self) -> None:
@@ -194,6 +247,13 @@ class LabJackT7Backend(PhotometryBackend):
                 pass
         self.active_dac_outputs.clear()
 
+    def _clear_block_queue(self) -> None:
+        while True:
+            try:
+                self._block_queue.get_nowait()
+            except queue.Empty:
+                break
+
 
 def _sine_buffer(
     sample_rate_hz: float,
@@ -252,3 +312,24 @@ def _digital_direction_register(channel_name: str) -> tuple[str, int] | None:
     if 20 <= dio_number <= 22:
         return "MIO_DIRECTION", dio_number - 20
     return None
+
+
+def _combine_blocks(blocks: list[AcquisitionBlock]) -> AcquisitionBlock:
+    if not blocks:
+        return AcquisitionBlock(np.array([]), {}, {})
+    if len(blocks) == 1:
+        return blocks[0]
+
+    analog_names = list(blocks[0].analog)
+    digital_names = list(blocks[0].digital)
+    return AcquisitionBlock(
+        t_seconds=np.concatenate([block.t_seconds for block in blocks]),
+        analog={
+            name: np.concatenate([block.analog[name] for block in blocks if name in block.analog])
+            for name in analog_names
+        },
+        digital={
+            name: np.concatenate([block.digital[name] for block in blocks if name in block.digital])
+            for name in digital_names
+        },
+    )

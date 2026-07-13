@@ -90,6 +90,10 @@ The first stable file format should include:
 
 HDF5 is a strong target for production because it handles mixed metadata and large numeric arrays well. CSV can be useful as a debugging export.
 
+## Stream Reading
+
+LabJack hardware reads run in a background thread. The GUI timer drains already-read blocks from an internal queue for plotting and HDF5 writing. This keeps LabJack's LJM stream buffer from filling when live plotting or disk writes briefly take longer than one display update.
+
 ## Frequency Choices
 
 Prime frequencies are a reasonable default because they avoid simple integer relationships. More important constraints:

@@ -799,7 +799,14 @@ class MainWindow(QtWidgets.QMainWindow):
             chart.set_row_height(row_height)
 
     def _poll_backend(self) -> None:
-        block = self.backend.read()
+        try:
+            block = self.backend.read()
+        except Exception as exc:
+            self._stop_recording()
+            self.start_button.setText("Start")
+            self.statusBar().showMessage("Stopped after acquisition error")
+            QtWidgets.QMessageBox.critical(self, "Acquisition stopped", str(exc))
+            return
         if block.t_seconds.size == 0:
             return
         if self.recorder is not None:
