@@ -188,14 +188,17 @@ class LabJackT7Backend(PhotometryBackend):
             return data.reshape((-1, input_width))
 
         if hardware_width > input_width and data.size % hardware_width == 0:
-            # Stream-out entries can be present in the raw LJM block even
-            # though they are not user-visible input channels. Drop them only
-            # when the block exactly matches the hardware scan width.
-            arr = data.reshape((-1, hardware_width))
-            self._last_parse_mode = f"hardware_width:{hardware_width}"
-            if self.config.stream_out_scan_mode == "leading":
-                return arr[:, self.stream_out_count : self.stream_out_count + input_width]
-            return arr[:, :input_width]
+            # LJM stream-out bookkeeping can appear as a trailing block in the
+            # raw read. Treat the first input_width values per scan as real
+            # acquisition data and discard the bookkeeping tail.
+            scan_count = data.size // hardware_width
+            input_value_count = scan_count * input_width
+            if input_value_count >= input_width:
+                self._last_parse_mode = (
+                    f"hardware_tail:{hardware_width}->input_width:{input_width},"
+                    f"dropped:{data.size - input_value_count}"
+                )
+                return data[:input_value_count].reshape((-1, input_width))
 
         complete_input_values = data.size - (data.size % input_width)
         if (
