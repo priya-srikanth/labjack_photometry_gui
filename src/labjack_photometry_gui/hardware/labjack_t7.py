@@ -165,7 +165,7 @@ class LabJackT7Backend(PhotometryBackend):
             if kind == "analog":
                 analog[label] = values
             else:
-                digital[label] = values.astype(np.uint8)
+                digital[label] = (values >= 0.5).astype(np.uint8)
 
         return AcquisitionBlock(t, analog, digital)
 
@@ -182,6 +182,21 @@ class LabJackT7Backend(PhotometryBackend):
         hardware_width = len(self.hardware_scan_names)
         if input_width == 0:
             return np.empty((0, 0), dtype=float)
+
+        if (
+            self.stream_out_count > 1
+            and hardware_width > input_width
+            and data.size % hardware_width == 0
+        ):
+            # With two active DAC stream-outs, LJM/T7 has been observed to
+            # include stream-out slots in the returned block. Parse those
+            # hardware rows first so the STREAM_OUT slots do not shift into
+            # analog or digital input channels.
+            arr = data.reshape((-1, hardware_width))
+            self._last_parse_mode = f"hardware_width:{hardware_width}"
+            if self.config.stream_out_scan_mode == "leading":
+                return arr[:, self.stream_out_count : self.stream_out_count + input_width]
+            return arr[:, :input_width]
 
         if data.size % input_width == 0:
             self._last_parse_mode = f"input_width:{input_width}"
