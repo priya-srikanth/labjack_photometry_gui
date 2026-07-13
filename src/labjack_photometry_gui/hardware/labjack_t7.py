@@ -62,10 +62,10 @@ class LabJackT7Backend(PhotometryBackend):
             self.stop()
             self._configure_inputs()
             stream_out_names = self._configure_stream_out()
-            # Some LJM/T7 stream configurations include placeholder values for
-            # STREAM_OUT entries in readback. Keep stream-out entries trailing
-            # so real input columns remain first, then discard any placeholders.
-            hardware_scan_names = self.input_names + stream_out_names
+            # LJM_PeriodicStreamOut configures the stream-out buffers. Keep the
+            # eStreamStart scan list to real input channels so readback framing
+            # cannot be shifted by non-measurement STREAM_OUT entries.
+            hardware_scan_names = list(self.input_names)
             self.hardware_scan_names = hardware_scan_names
             self.stream_out_count = len(stream_out_names)
             self.scan_names = list(self.input_names)
