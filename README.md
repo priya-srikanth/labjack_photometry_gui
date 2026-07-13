@@ -103,6 +103,8 @@ or:
 
 The default acquisition scan rate is `2000 Hz`. This is intentionally conservative because the T7 aggregate stream limit is shared across analog inputs, digital inputs, and stream-out channels.
 
+When stopping or disconnecting from LabJack hardware mode, the app explicitly writes `0 V` to `DAC0` and `DAC1` so LED driver modulation inputs return to a safe off command.
+
 ## Development Notes
 
 - GUI: PySide6

@@ -28,6 +28,7 @@ class LabJackT7Backend(PhotometryBackend):
         self.input_kinds: list[str] = []
         self.scan_names: list[str] = []
         self.waveform_info: list[dict[str, float | int | str]] = []
+        self.active_dac_outputs: set[str] = set()
         self._next_t = 0.0
         self._running = False
 
@@ -36,6 +37,7 @@ class LabJackT7Backend(PhotometryBackend):
 
     def disconnect(self) -> None:
         if self.handle is not None:
+            self.stop()
             self.ljm.close(self.handle)
             self.handle = None
 
@@ -48,27 +50,31 @@ class LabJackT7Backend(PhotometryBackend):
             self.connect()
         assert self.handle is not None
 
-        self.stop()
-        self._configure_inputs()
-        stream_out_names = self._configure_stream_out()
-        self.scan_names = self.input_names + stream_out_names
-        aggregate_rate = self.config.sample_rate_hz * len(self.scan_names)
-        if aggregate_rate > 100_000:
-            raise RuntimeError(
-                "Requested stream is too fast for a T7. "
-                f"{len(self.scan_names)} stream addresses at {self.config.sample_rate_hz:.0f} Hz "
-                f"is {aggregate_rate:.0f} samples/s; keep it at or below about 100000 samples/s."
+        try:
+            self.stop()
+            self._configure_inputs()
+            stream_out_names = self._configure_stream_out()
+            self.scan_names = self.input_names + stream_out_names
+            aggregate_rate = self.config.sample_rate_hz * len(self.scan_names)
+            if aggregate_rate > 100_000:
+                raise RuntimeError(
+                    "Requested stream is too fast for a T7. "
+                    f"{len(self.scan_names)} stream addresses at {self.config.sample_rate_hz:.0f} Hz "
+                    f"is {aggregate_rate:.0f} samples/s; keep it at or below about 100000 samples/s."
+                )
+            scan_addresses, _ = self.ljm.namesToAddresses(len(self.scan_names), self.scan_names)
+            self.actual_scan_rate_hz = self.ljm.eStreamStart(
+                self.handle,
+                self.scans_per_read,
+                len(scan_addresses),
+                scan_addresses,
+                self.config.sample_rate_hz,
             )
-        scan_addresses, _ = self.ljm.namesToAddresses(len(self.scan_names), self.scan_names)
-        self.actual_scan_rate_hz = self.ljm.eStreamStart(
-            self.handle,
-            self.scans_per_read,
-            len(scan_addresses),
-            scan_addresses,
-            self.config.sample_rate_hz,
-        )
-        self._next_t = 0.0
-        self._running = True
+            self._next_t = 0.0
+            self._running = True
+        except Exception:
+            self._safe_dac_shutdown()
+            raise
 
     def read(self) -> AcquisitionBlock:
         if self.handle is None or not self._running:
@@ -102,6 +108,7 @@ class LabJackT7Backend(PhotometryBackend):
                 self.ljm.eStreamStop(self.handle)
             except Exception:
                 pass
+            self._safe_dac_shutdown()
         self._running = False
 
     def _configure_inputs(self) -> None:
@@ -144,6 +151,7 @@ class LabJackT7Backend(PhotometryBackend):
                 continue
             if modulation.output not in {"DAC0", "DAC1"}:
                 continue
+            self.active_dac_outputs.add(modulation.output)
             target_address, _ = self.ljm.nameToAddress(modulation.output)
             waveform, actual_frequency_hz, cycles = _sine_buffer(
                 sample_rate_hz=self.config.sample_rate_hz,
@@ -174,6 +182,17 @@ class LabJackT7Backend(PhotometryBackend):
             )
             stream_index += 1
         return stream_out_names
+
+    def _safe_dac_shutdown(self) -> None:
+        if self.handle is None:
+            return
+        outputs = {"DAC0", "DAC1", *self.active_dac_outputs}
+        for output in outputs:
+            try:
+                self.ljm.eWriteName(self.handle, output, 0.0)
+            except Exception:
+                pass
+        self.active_dac_outputs.clear()
 
 
 def _sine_buffer(

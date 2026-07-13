@@ -50,6 +50,8 @@ Four independent carriers would require one of:
 - external function generators
 - LED drivers with internal modulation and sync outputs
 
+On stop, disconnect, or partial startup failure, the hardware backend writes `0 V` to `DAC0` and `DAC1`. This prevents LED driver modulation inputs from staying at the last streamed value after acquisition stops.
+
 ## Input Plan
 
 Recommended stream scan list:
