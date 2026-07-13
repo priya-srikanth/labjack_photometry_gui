@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -9,6 +10,7 @@ from PySide6 import QtCore, QtWidgets
 import pyqtgraph as pg
 
 from labjack_photometry_gui.config_file import load_gui_config, save_gui_config
+from labjack_photometry_gui.hardware.base import AcquisitionBlock
 from labjack_photometry_gui.hardware.base import PhotometryBackend
 from labjack_photometry_gui.hardware.labjack_t7 import LabJackT7Backend
 from labjack_photometry_gui.hardware.mock import MockBackend
@@ -36,8 +38,8 @@ class SignalStripChart(QtWidgets.QWidget):
         self.name = name
         self.channel = channel
         self.is_digital = is_digital
-        self.x_values: list[float] = []
-        self.y_values: list[float] = []
+        self.x_values = np.array([], dtype=float)
+        self.y_values = np.array([], dtype=float)
         self.setMinimumWidth(720)
 
         layout = QtWidgets.QHBoxLayout(self)
@@ -79,12 +81,18 @@ class SignalStripChart(QtWidgets.QWidget):
         self.plot.setMaximumHeight(plot_height)
 
     def clear(self) -> None:
-        self.x_values.clear()
-        self.y_values.clear()
+        self.x_values = np.array([], dtype=float)
+        self.y_values = np.array([], dtype=float)
         self.curve.setData([], [])
         self.value_label.setText("--")
 
-    def push(self, t_seconds: np.ndarray, values: np.ndarray, display_seconds: float) -> None:
+    def push(
+        self,
+        t_seconds: np.ndarray,
+        values: np.ndarray,
+        display_seconds: float,
+        max_display_points: int = 1200,
+    ) -> None:
         if t_seconds.size == 0 or values.size == 0:
             return
 
@@ -93,25 +101,28 @@ class SignalStripChart(QtWidgets.QWidget):
         else:
             values = values.astype(float)
 
-        self.x_values.extend(t_seconds.tolist())
-        self.y_values.extend(values.tolist())
+        self.x_values = np.concatenate((self.x_values, t_seconds.astype(float)))
+        self.y_values = np.concatenate((self.y_values, values))
 
         cutoff = float(t_seconds[-1] - display_seconds)
-        while self.x_values and self.x_values[0] < cutoff:
-            self.x_values.pop(0)
-            self.y_values.pop(0)
-
-        x = np.asarray(self.x_values, dtype=float)
-        y = np.asarray(self.y_values, dtype=float)
-        if x.size == 0:
+        keep = self.x_values >= cutoff
+        self.x_values = self.x_values[keep]
+        self.y_values = self.y_values[keep]
+        if self.x_values.size == 0:
             return
 
-        relative_x = x - x[-1]
-        self.curve.setData(relative_x, y)
+        x_plot, y_plot = _decimate_for_display(
+            self.x_values,
+            self.y_values,
+            max_display_points=max_display_points,
+            is_digital=self.is_digital,
+        )
+        relative_x = x_plot - self.x_values[-1]
+        self.curve.setData(relative_x, y_plot)
         self.plot.setXRange(-display_seconds, 0.0, padding=0)
-        if not self.is_digital and y.size:
-            y_min = float(np.nanmin(y))
-            y_max = float(np.nanmax(y))
+        if not self.is_digital and y_plot.size:
+            y_min = float(np.nanmin(y_plot))
+            y_max = float(np.nanmax(y_plot))
             if y_min == y_max:
                 y_min -= 0.5
                 y_max += 0.5
@@ -119,9 +130,9 @@ class SignalStripChart(QtWidgets.QWidget):
             self.plot.setYRange(y_min - 0.08 * span, y_max + 0.08 * span, padding=0)
 
         if self.is_digital:
-            self.value_label.setText(str(int(round(float(y[-1])))))
+            self.value_label.setText(str(int(round(float(self.y_values[-1])))))
         else:
-            self.value_label.setText(f"{float(y[-1]):.3f}")
+            self.value_label.setText(f"{float(self.y_values[-1]):.3f}")
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -153,6 +164,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.strip_charts: dict[str, SignalStripChart] = {}
         self.chart_scroll_area: QtWidgets.QScrollArea | None = None
         self.display_order: list[str] = []
+        self._pending_plot_blocks = []
+        self._last_plot_update = 0.0
+        self._plot_interval_s = 0.20
 
         self._build_ui()
 
@@ -606,6 +620,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self._rebuild_strip_charts()
         self.sample_count_label.setText("Samples: 0")
+        self._pending_plot_blocks.clear()
+        self._last_plot_update = 0.0
 
         self.backend.start()
         runtime_metadata = {
@@ -636,6 +652,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _stop_recording(self) -> None:
         self.timer.stop()
+        self._pending_plot_blocks.clear()
         try:
             self.backend.stop()
         finally:
@@ -812,14 +829,27 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.recorder is not None:
             self.recorder.append(block)
 
+        self._pending_plot_blocks.append(block)
+        now = time.perf_counter()
+        if now - self._last_plot_update < self._plot_interval_s:
+            self.sample_count_label.setText(
+                f"Samples: {int(block.t_seconds[-1] * self.config.sample_rate_hz):,}"
+            )
+            return
+        plot_block = _combine_plot_blocks(self._pending_plot_blocks)
+        self._pending_plot_blocks.clear()
+        self._last_plot_update = now
+
         display_seconds = self.display_seconds_spin.value()
-        for name, values in block.analog.items():
+        for name, values in plot_block.analog.items():
             if name in self.strip_charts:
-                self.strip_charts[name].push(block.t_seconds, values, display_seconds)
-        for name, values in block.digital.items():
+                self.strip_charts[name].push(plot_block.t_seconds, values, display_seconds)
+        for name, values in plot_block.digital.items():
             if name in self.strip_charts:
-                self.strip_charts[name].push(block.t_seconds, values, display_seconds)
-        self.sample_count_label.setText(f"Samples: {int(block.t_seconds[-1] * self.config.sample_rate_hz):,}")
+                self.strip_charts[name].push(plot_block.t_seconds, values, display_seconds)
+        self.sample_count_label.setText(
+            f"Samples: {int(plot_block.t_seconds[-1] * self.config.sample_rate_hz):,}"
+        )
 
 
 def main() -> int:
@@ -858,3 +888,54 @@ def _display_key_label(key: str) -> str:
     prefix, _, name = key.partition(":")
     label = "AI" if prefix == "ai" else "DI" if prefix == "di" else prefix.upper()
     return f"{label}: {name}"
+
+
+def _decimate_for_display(
+    x: np.ndarray,
+    y: np.ndarray,
+    max_display_points: int,
+    is_digital: bool,
+) -> tuple[np.ndarray, np.ndarray]:
+    if x.size <= max_display_points:
+        return x, y
+
+    if is_digital:
+        step = int(np.ceil(x.size / max_display_points))
+        return x[::step], y[::step]
+
+    # Preserve envelope shape by plotting min and max from each display bin.
+    bins = max(1, max_display_points // 2)
+    edges = np.linspace(0, x.size, bins + 1, dtype=int)
+    x_out: list[float] = []
+    y_out: list[float] = []
+    for start, stop in zip(edges[:-1], edges[1:]):
+        if stop <= start:
+            continue
+        segment = y[start:stop]
+        x_segment = x[start:stop]
+        min_index = int(np.argmin(segment))
+        max_index = int(np.argmax(segment))
+        for index in sorted((min_index, max_index)):
+            x_out.append(float(x_segment[index]))
+            y_out.append(float(segment[index]))
+    return np.asarray(x_out, dtype=float), np.asarray(y_out, dtype=float)
+
+
+def _combine_plot_blocks(blocks: list[AcquisitionBlock]) -> AcquisitionBlock:
+    if not blocks:
+        return AcquisitionBlock(np.array([]), {}, {})
+    if len(blocks) == 1:
+        return blocks[0]
+    analog_names = list(blocks[0].analog)
+    digital_names = list(blocks[0].digital)
+    return AcquisitionBlock(
+        t_seconds=np.concatenate([block.t_seconds for block in blocks]),
+        analog={
+            name: np.concatenate([block.analog[name] for block in blocks if name in block.analog])
+            for name in analog_names
+        },
+        digital={
+            name: np.concatenate([block.digital[name] for block in blocks if name in block.digital])
+            for name in digital_names
+        },
+    )

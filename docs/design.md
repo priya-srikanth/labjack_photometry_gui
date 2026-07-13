@@ -94,6 +94,8 @@ HDF5 is a strong target for production because it handles mixed metadata and lar
 
 LabJack hardware reads run in a background thread. The GUI timer drains already-read blocks from an internal queue for plotting and HDF5 writing. This keeps LabJack's LJM stream buffer from filling when live plotting or disk writes briefly take longer than one display update.
 
+Live plotting is intentionally decimated and throttled separately from acquisition. Full-rate data still goes to the recorder, while each strip chart plots a compact envelope at a lower UI refresh rate so Stop/Quit remains responsive.
+
 ## Frequency Choices
 
 Prime frequencies are a reasonable default because they avoid simple integer relationships. More important constraints:
