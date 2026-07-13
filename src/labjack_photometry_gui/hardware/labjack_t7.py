@@ -60,15 +60,21 @@ class LabJackT7Backend(PhotometryBackend):
             self.stop()
             self._configure_inputs()
             stream_out_names = self._configure_stream_out()
-            self.scan_names = self.input_names + stream_out_names
-            aggregate_rate = self.config.sample_rate_hz * len(self.scan_names)
+            hardware_scan_names = self.input_names + stream_out_names
+            # STREAM_OUT entries advance DAC outputs in the hardware scan list,
+            # but LJM readback data contains only acquired input values.
+            self.scan_names = list(self.input_names)
+            aggregate_rate = self.config.sample_rate_hz * len(hardware_scan_names)
             if aggregate_rate > 100_000:
                 raise RuntimeError(
                     "Requested stream is too fast for a T7. "
-                    f"{len(self.scan_names)} stream addresses at {self.config.sample_rate_hz:.0f} Hz "
+                    f"{len(hardware_scan_names)} stream addresses at {self.config.sample_rate_hz:.0f} Hz "
                     f"is {aggregate_rate:.0f} samples/s; keep it at or below about 100000 samples/s."
                 )
-            scan_addresses, _ = self.ljm.namesToAddresses(len(self.scan_names), self.scan_names)
+            scan_addresses, _ = self.ljm.namesToAddresses(
+                len(hardware_scan_names),
+                hardware_scan_names,
+            )
             self.actual_scan_rate_hz = self.ljm.eStreamStart(
                 self.handle,
                 self.scans_per_read,
