@@ -1075,6 +1075,7 @@ def _digital_trace_for_display(
     max_display_points: int,
 ) -> tuple[np.ndarray, np.ndarray]:
     digital = (y >= 0.5).astype(float)
+    digital = _suppress_short_low_digital_glitches(x, digital)
     if x.size <= 1:
         return x, digital
 
@@ -1088,9 +1089,10 @@ def _digital_trace_for_display(
         indices = np.asarray(sorted(keep), dtype=int)
         return x[indices], digital[indices]
 
-    # If transitions are very dense, draw the min/max envelope per bin so
-    # narrow pulses remain visible instead of being skipped by downsampling.
-    bins = max(1, max_display_points // 4)
+    # If transitions are very dense, draw the majority state per display bin.
+    # This keeps state-like digital lines readable instead of turning brief
+    # dropouts in an otherwise-high signal into a comb of high/low transitions.
+    bins = max(1, max_display_points // 2)
     edges = np.linspace(0, x.size, bins + 1, dtype=int)
     x_out: list[float] = []
     y_out: list[float] = []
@@ -1100,18 +1102,44 @@ def _digital_trace_for_display(
         segment = digital[start:stop]
         left_x = float(x[start])
         right_x = float(x[stop - 1])
-        left_y = float(segment[0])
-        right_y = float(segment[-1])
-        high = float(np.max(segment))
-        low = float(np.min(segment))
+        state = float(np.mean(segment) >= 0.5)
         x_out.append(left_x)
-        y_out.append(left_y)
-        if high != low:
-            x_out.extend([left_x, right_x])
-            y_out.extend([high, high])
+        y_out.append(state)
         x_out.append(right_x)
-        y_out.append(right_y)
+        y_out.append(state)
     return np.asarray(x_out, dtype=float), np.asarray(y_out, dtype=float)
+
+
+def _suppress_short_low_digital_glitches(
+    x: np.ndarray,
+    digital: np.ndarray,
+    max_width_s: float = 0.003,
+) -> np.ndarray:
+    if digital.size < 3:
+        return digital
+
+    sample_period = float(np.median(np.diff(x))) if x.size > 1 else 0.0
+    if sample_period <= 0.0:
+        return digital
+    max_samples = max(1, int(np.ceil(max_width_s / sample_period)))
+
+    cleaned = digital.copy()
+    start = 0
+    while start < cleaned.size:
+        stop = start + 1
+        while stop < cleaned.size and cleaned[stop] == cleaned[start]:
+            stop += 1
+        run_is_low = cleaned[start] < 0.5
+        surrounded_by_high = (
+            start > 0
+            and stop < cleaned.size
+            and cleaned[start - 1] >= 0.5
+            and cleaned[stop] >= 0.5
+        )
+        if run_is_low and surrounded_by_high and stop - start <= max_samples:
+            cleaned[start:stop] = 1.0
+        start = stop
+    return cleaned
 
 
 def _combine_plot_blocks(blocks: list[AcquisitionBlock]) -> AcquisitionBlock:
