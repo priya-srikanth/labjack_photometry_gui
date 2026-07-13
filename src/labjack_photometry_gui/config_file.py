@@ -38,6 +38,7 @@ def _rig_config_from_dict(data: dict[str, Any]) -> RigConfig:
     defaults = RigConfig()
     return RigConfig(
         sample_rate_hz=float(data.get("sample_rate_hz", 2_000.0)),
+        ain_settling_us=float(data.get("ain_settling_us", defaults.ain_settling_us)),
         backend=BackendKind(data.get("backend", BackendKind.MOCK.value)),
         modulations=tuple(
             ModulationChannel(**item)

@@ -40,6 +40,7 @@ class DigitalInputChannel:
 @dataclass(frozen=True)
 class RigConfig:
     sample_rate_hz: float = 2_000.0
+    ain_settling_us: float = 50.0
     backend: BackendKind = BackendKind.MOCK
     modulations: tuple[ModulationChannel, ...] = field(
         default_factory=lambda: (

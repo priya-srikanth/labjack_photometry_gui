@@ -169,6 +169,7 @@ class LabJackT7Backend(PhotometryBackend):
         self.input_names = []
         self.input_labels = []
         self.input_kinds = []
+        self.ljm.eWriteName(self.handle, "AIN_ALL_SETTLING_US", self.config.ain_settling_us)
 
         for channel in self.config.analog_inputs:
             if channel.enabled:
