@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sys
 import time
 from datetime import datetime
@@ -23,6 +24,10 @@ from labjack_photometry_gui.models import (
     SessionConfig,
 )
 from labjack_photometry_gui.recording import H5Recorder
+
+
+DEFAULT_STARTUP_CONFIG = Path.cwd() / "config" / "default_gui_config.json"
+STARTUP_CONFIG_ENV = "LABJACK_PHOTOMETRY_CONFIG"
 
 
 class SignalStripChart(QtWidgets.QWidget):
@@ -182,6 +187,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self._plot_interval_s = 0.20
 
         self._build_ui()
+        self._auto_load_startup_config()
 
     def _build_ui(self) -> None:
         central = QtWidgets.QWidget()
@@ -869,6 +875,21 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self._load_config_into_controls(config, ui)
         self.statusBar().showMessage(f"Loaded config: {path}")
+
+    def _auto_load_startup_config(self) -> None:
+        env_path = os.environ.get(STARTUP_CONFIG_ENV, "").strip()
+        path = Path(env_path) if env_path else DEFAULT_STARTUP_CONFIG
+        if not path.exists():
+            return
+
+        try:
+            config, ui = load_gui_config(path)
+        except Exception as exc:
+            self.statusBar().showMessage(f"Startup config failed: {path} ({exc})")
+            return
+
+        self._load_config_into_controls(config, ui)
+        self.statusBar().showMessage(f"Loaded startup config: {path}")
 
     def _load_config_into_controls(self, config: RigConfig, ui: dict[str, object]) -> None:
         self.config = config

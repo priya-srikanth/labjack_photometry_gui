@@ -18,6 +18,8 @@ Analog rows also have editable display min/max voltage columns. Use these to set
 Input rows can be reordered by dragging rows or using the Up/Down buttons. The Display Order tab can interleave analog and digital rows for the live strip-chart view.
 GUI settings can be saved to or loaded from a JSON config file, including channel maps, display order, modulation settings, sample rate, backend, and output settings. Config loading intentionally does not overwrite the current session prefix. Each saved recording uses the current prefix plus a fresh timestamp.
 
+On launch, the GUI automatically loads `config/default_gui_config.json` if that file exists. To make a new startup default, save a config from the GUI and place or copy it to that path. You can also point launch at a different config by setting the `LABJACK_PHOTOMETRY_CONFIG` environment variable to a JSON config path before running the GUI.
+
 ## Planned Rig Signals
 
 See [LabJack T7 + CB37 Photometry Pinout](docs/labjack_cb37_pinout.md) for the full bench wiring map with DB37 pin numbers.
