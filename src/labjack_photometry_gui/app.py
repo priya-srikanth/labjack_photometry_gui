@@ -34,12 +34,14 @@ class SignalStripChart(QtWidgets.QWidget):
         is_digital: bool = False,
         y_min: float = -0.25,
         y_max: float = 5.25,
+        suppress_short_low_glitches: bool = False,
         parent: QtWidgets.QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self.name = name
         self.channel = channel
         self.is_digital = is_digital
+        self.suppress_short_low_glitches = suppress_short_low_glitches
         if y_min == y_max:
             y_min -= 0.5
             y_max += 0.5
@@ -124,9 +126,13 @@ class SignalStripChart(QtWidgets.QWidget):
         if self.x_values.size == 0:
             return
 
+        y_for_plot = self.y_values
+        if self.suppress_short_low_glitches and not self.is_digital:
+            y_for_plot = _suppress_short_low_analog_glitches(self.x_values, self.y_values)
+
         x_plot, y_plot = _decimate_for_display(
             self.x_values,
-            self.y_values,
+            y_for_plot,
             max_display_points=max_display_points,
             is_digital=self.is_digital,
         )
@@ -938,6 +944,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 is_digital=is_digital,
                 y_min=-0.2 if is_digital else channel.display_min_v,
                 y_max=1.2 if is_digital else channel.display_max_v,
+                suppress_short_low_glitches=(
+                    not is_digital and "lick" in channel.name.lower()
+                ),
             )
             self.strip_charts[channel.name] = chart
             self.chart_layout.addWidget(chart)
@@ -1138,6 +1147,48 @@ def _suppress_short_low_digital_glitches(
         )
         if run_is_low and surrounded_by_high and stop - start <= max_samples:
             cleaned[start:stop] = 1.0
+        start = stop
+    return cleaned
+
+
+def _suppress_short_low_analog_glitches(
+    x: np.ndarray,
+    values: np.ndarray,
+    max_width_s: float = 0.003,
+) -> np.ndarray:
+    if values.size < 3:
+        return values
+
+    sample_period = float(np.median(np.diff(x))) if x.size > 1 else 0.0
+    if sample_period <= 0.0:
+        return values
+
+    low_level = float(np.nanpercentile(values, 10))
+    high_level = float(np.nanpercentile(values, 90))
+    if not np.isfinite(low_level) or not np.isfinite(high_level):
+        return values
+    if high_level - low_level < 0.5:
+        return values
+
+    threshold = low_level + 0.5 * (high_level - low_level)
+    high_state = values >= threshold
+    max_samples = max(1, int(np.ceil(max_width_s / sample_period)))
+    cleaned = values.copy()
+
+    start = 0
+    while start < high_state.size:
+        stop = start + 1
+        while stop < high_state.size and high_state[stop] == high_state[start]:
+            stop += 1
+        run_is_low = not bool(high_state[start])
+        surrounded_by_high = (
+            start > 0
+            and stop < high_state.size
+            and bool(high_state[start - 1])
+            and bool(high_state[stop])
+        )
+        if run_is_low and surrounded_by_high and stop - start <= max_samples:
+            cleaned[start:stop] = 0.5 * (cleaned[start - 1] + cleaned[stop])
         start = stop
     return cleaned
 
