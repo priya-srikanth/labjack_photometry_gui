@@ -28,6 +28,9 @@ class H5Recorder:
         self._runtime_metadata = runtime_metadata or {}
         self._analog_names = [channel.name for channel in rig.analog_inputs if channel.enabled]
         self._digital_names = [channel.name for channel in rig.digital_inputs if channel.enabled]
+        self._chunk_samples = max(1, int(round(rig.sample_rate_hz)))
+        self._flush_interval_samples = max(self._chunk_samples, int(round(rig.sample_rate_hz * 5.0)))
+        self._last_flush_sample = 0
 
     def open(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -44,21 +47,23 @@ class H5Recorder:
             shape=(0,),
             maxshape=(None,),
             dtype="f8",
-            chunks=True,
+            chunks=(self._chunk_samples,),
+            compression="lzf",
+            shuffle=True,
         )
         self.file.create_dataset(
             "analog",
             shape=(0, len(self._analog_names)),
             maxshape=(None, len(self._analog_names)),
-            dtype="f8",
-            chunks=True,
+            dtype="f4",
+            **_chunk_kwargs(self._chunk_samples, len(self._analog_names)),
         )
         self.file.create_dataset(
             "digital",
             shape=(0, len(self._digital_names)),
             maxshape=(None, len(self._digital_names)),
             dtype="u1",
-            chunks=True,
+            **_chunk_kwargs(self._chunk_samples, len(self._digital_names)),
         )
         self.file.create_dataset(
             "analog_channel_names",
@@ -104,11 +109,16 @@ class H5Recorder:
                 ]
             )
         self._samples_written = stop
+        self.file.attrs["samples_written"] = self._samples_written
+        if self._samples_written - self._last_flush_sample >= self._flush_interval_samples:
+            self.file.flush()
+            self._last_flush_sample = self._samples_written
 
     def close(self) -> None:
         if self.file is None:
             return
         self.file.attrs["samples_written"] = self._samples_written
+        self.file.flush()
         self.file.close()
         self.file = None
 
@@ -123,3 +133,13 @@ def _jsonable_dataclass(value: Any) -> Any:
     if isinstance(value, Path):
         return str(value)
     return value
+
+
+def _chunk_kwargs(chunk_samples: int, columns: int) -> dict[str, Any]:
+    if columns <= 0:
+        return {"chunks": True}
+    return {
+        "chunks": (chunk_samples, columns),
+        "compression": "lzf",
+        "shuffle": True,
+    }
