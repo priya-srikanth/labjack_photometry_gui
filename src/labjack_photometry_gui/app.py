@@ -71,6 +71,10 @@ class SignalStripChart(QtWidgets.QWidget):
         self.plot.getPlotItem().hideAxis("bottom")
         if is_digital:
             self.plot.setYRange(-0.2, 1.2, padding=0)
+            self.plot.addLine(
+                y=0.0,
+                pen=pg.mkPen("#999999", width=0.8, style=QtCore.Qt.PenStyle.DotLine),
+            )
         else:
             self.plot.setYRange(self.y_min, self.y_max, padding=0)
         self.curve = self.plot.plot(pen=pg.mkPen(color, width=1.4))
@@ -1001,12 +1005,11 @@ def _decimate_for_display(
     max_display_points: int,
     is_digital: bool,
 ) -> tuple[np.ndarray, np.ndarray]:
+    if is_digital:
+        return _digital_trace_for_display(x, y, max_display_points)
+
     if x.size <= max_display_points:
         return x, y
-
-    if is_digital:
-        step = int(np.ceil(x.size / max_display_points))
-        return x[::step], y[::step]
 
     # Preserve envelope shape by plotting min and max from each display bin.
     bins = max(1, max_display_points // 2)
@@ -1023,6 +1026,51 @@ def _decimate_for_display(
         for index in sorted((min_index, max_index)):
             x_out.append(float(x_segment[index]))
             y_out.append(float(segment[index]))
+    return np.asarray(x_out, dtype=float), np.asarray(y_out, dtype=float)
+
+
+def _digital_trace_for_display(
+    x: np.ndarray,
+    y: np.ndarray,
+    max_display_points: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    digital = (y >= 0.5).astype(float)
+    if x.size <= 1:
+        return x, digital
+
+    change_indices = np.flatnonzero(np.diff(digital) != 0) + 1
+    keep: set[int] = {0, x.size - 1}
+    for index in change_indices:
+        keep.add(max(0, int(index) - 1))
+        keep.add(int(index))
+
+    if len(keep) <= max_display_points:
+        indices = np.asarray(sorted(keep), dtype=int)
+        return x[indices], digital[indices]
+
+    # If transitions are very dense, draw the min/max envelope per bin so
+    # narrow pulses remain visible instead of being skipped by downsampling.
+    bins = max(1, max_display_points // 4)
+    edges = np.linspace(0, x.size, bins + 1, dtype=int)
+    x_out: list[float] = []
+    y_out: list[float] = []
+    for start, stop in zip(edges[:-1], edges[1:]):
+        if stop <= start:
+            continue
+        segment = digital[start:stop]
+        left_x = float(x[start])
+        right_x = float(x[stop - 1])
+        left_y = float(segment[0])
+        right_y = float(segment[-1])
+        high = float(np.max(segment))
+        low = float(np.min(segment))
+        x_out.append(left_x)
+        y_out.append(left_y)
+        if high != low:
+            x_out.extend([left_x, right_x])
+            y_out.extend([high, high])
+        x_out.append(right_x)
+        y_out.append(right_y)
     return np.asarray(x_out, dtype=float), np.asarray(y_out, dtype=float)
 
 
