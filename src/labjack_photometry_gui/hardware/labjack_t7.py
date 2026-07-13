@@ -206,6 +206,22 @@ class LabJackT7Backend(PhotometryBackend):
                 continue
             self.active_dac_outputs.add(modulation.output)
             target_address, _ = self.ljm.nameToAddress(modulation.output)
+            if modulation.frequency_hz <= 0.0:
+                static_voltage = float(np.clip(modulation.offset_v, 0.0, 5.0))
+                self.ljm.eWriteName(self.handle, modulation.output, static_voltage)
+                self.waveform_info.append(
+                    {
+                        "name": modulation.name,
+                        "output": modulation.output,
+                        "requested_frequency_hz": modulation.frequency_hz,
+                        "actual_frequency_hz": 0.0,
+                        "offset_v": static_voltage,
+                        "amplitude_v": 0.0,
+                        "buffer_samples": 0,
+                        "cycles_per_buffer": 0,
+                    }
+                )
+                continue
             waveform, actual_frequency_hz, cycles = _sine_buffer(
                 sample_rate_hz=self.config.sample_rate_hz,
                 frequency_hz=modulation.frequency_hz,
@@ -260,8 +276,10 @@ def _sine_buffer(
     frequency_hz: float,
     offset_v: float,
     amplitude_v: float,
-    max_samples: int = 512,
+    max_samples: int = 8192,
 ) -> tuple[np.ndarray, float, int]:
+    if frequency_hz <= 0.0:
+        return np.array([np.clip(offset_v, 0.0, 5.0)], dtype=float), 0.0, 0
     buffer_samples, cycles = _best_periodic_buffer(sample_rate_hz, frequency_hz, max_samples)
     phase = np.arange(buffer_samples) / buffer_samples
     waveform = offset_v + amplitude_v * np.sin(2.0 * math.pi * cycles * phase)

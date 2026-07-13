@@ -245,7 +245,7 @@ class MainWindow(QtWidgets.QMainWindow):
             name_edit = QtWidgets.QLineEdit(mod.name)
             output_edit = QtWidgets.QLineEdit(mod.output)
             frequency = QtWidgets.QDoubleSpinBox()
-            frequency.setRange(1.0, 2_000.0)
+            frequency.setRange(0.0, 2_000.0)
             frequency.setDecimals(1)
             frequency.setValue(mod.frequency_hz)
             frequency.setSuffix(" Hz")
@@ -272,6 +272,10 @@ class MainWindow(QtWidgets.QMainWindow):
             self.mod_controls.append(
                 (enabled, name_edit, output_edit, frequency, offset, amplitude)
             )
+
+        self.waveform_status_label = QtWidgets.QLabel("Actual carriers: --")
+        self.waveform_status_label.setWordWrap(True)
+        modulation_layout.addWidget(self.waveform_status_label)
 
         controls_layout.addWidget(modulation_group)
 
@@ -702,6 +706,7 @@ class MainWindow(QtWidgets.QMainWindow):
             ),
             "waveforms": getattr(self.backend, "waveform_info", []),
         }
+        self._update_waveform_status(runtime_metadata["waveforms"])
 
         if self.save_check.isChecked():
             session = SessionConfig(
@@ -730,6 +735,30 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.recorder is not None:
             self.recorder.close()
             self.recorder = None
+
+    def _update_waveform_status(self, waveforms: object) -> None:
+        if not hasattr(self, "waveform_status_label"):
+            return
+        if not isinstance(waveforms, list) or not waveforms:
+            self.waveform_status_label.setText("Actual carriers: none")
+            return
+
+        parts = []
+        warnings = []
+        for waveform in waveforms:
+            if not isinstance(waveform, dict):
+                continue
+            name = waveform.get("name", "carrier")
+            output = waveform.get("output", "")
+            requested = float(waveform.get("requested_frequency_hz", 0.0))
+            actual = float(waveform.get("actual_frequency_hz", 0.0))
+            parts.append(f"{name} {output}: {actual:.3f} Hz")
+            if requested > 0 and abs(actual - requested) / requested > 0.01:
+                warnings.append(f"{name} requested {requested:.3f} Hz")
+        suffix = ""
+        if warnings:
+            suffix = " (quantized; " + "; ".join(warnings) + ")"
+        self.waveform_status_label.setText("Actual carriers: " + ", ".join(parts) + suffix)
 
     def _make_backend(self, backend_kind: BackendKind) -> PhotometryBackend:
         if backend_kind == BackendKind.LABJACK_T7:
