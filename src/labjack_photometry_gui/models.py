@@ -41,6 +41,8 @@ class DigitalInputChannel:
 class RigConfig:
     sample_rate_hz: float = 2_000.0
     ain_settling_us: float = 50.0
+    stream_out_scan_mode: str = "inputs_only"
+    labjack_stream_debug: bool = False
     backend: BackendKind = BackendKind.MOCK
     modulations: tuple[ModulationChannel, ...] = field(
         default_factory=lambda: (

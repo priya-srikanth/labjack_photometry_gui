@@ -110,6 +110,8 @@ Set a modulation frequency to `0 Hz` to hold that DAC at the offset voltage for 
 
 The `AIN settle` setting adds settling time between multiplexed analog input readings. Increase it, or lower the sample rate, if changing DAC loopback signals appear to bleed into high-impedance or floating analog inputs.
 
+For LabJack stream-out troubleshooting, enable `Stream debug` before starting a run. The GUI writes a `data/labjack_stream_debug_*.txt` file with the raw `eStreamRead` framing, scan-list names, candidate reshape widths, and first raw values. The `Stream out` selector is diagnostic: `Inputs only` keeps stream-out entries out of `eStreamStart`; `Trailing` appends `STREAM_OUT#` after inputs; `Leading` puts `STREAM_OUT#` before inputs.
+
 When stopping or disconnecting from LabJack hardware mode, the app explicitly writes `0 V` to `DAC0` and `DAC1` so LED driver modulation inputs return to a safe off command.
 
 ## Development Notes

@@ -199,6 +199,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ain_settling_spin.setDecimals(0)
         self.ain_settling_spin.setValue(self.config.ain_settling_us)
         self.ain_settling_spin.setSuffix(" us")
+        self.stream_out_mode_combo = QtWidgets.QComboBox()
+        self.stream_out_mode_combo.addItem("Inputs only", "inputs_only")
+        self.stream_out_mode_combo.addItem("Trailing", "trailing")
+        self.stream_out_mode_combo.addItem("Leading", "leading")
+        self.stream_out_mode_combo.setCurrentIndex(
+            max(0, self.stream_out_mode_combo.findData(self.config.stream_out_scan_mode))
+        )
+        self.stream_debug_check = QtWidgets.QCheckBox("Stream debug")
+        self.stream_debug_check.setChecked(self.config.labjack_stream_debug)
         self.display_seconds_spin = QtWidgets.QDoubleSpinBox()
         self.display_seconds_spin.setRange(1.0, 300.0)
         self.display_seconds_spin.setDecimals(0)
@@ -220,10 +229,12 @@ class MainWindow(QtWidgets.QMainWindow):
         backend_layout.addRow("Backend", self.backend_combo)
         backend_layout.addRow("Sample rate", self.sample_rate_spin)
         backend_layout.addRow("AIN settle", self.ain_settling_spin)
+        backend_layout.addRow("Stream out", self.stream_out_mode_combo)
         backend_layout.addRow("Display", self.display_seconds_spin)
         backend_layout.addRow("Session", self.session_name_edit)
         backend_layout.addRow("Output", output_row)
         backend_layout.addRow(self.save_check)
+        backend_layout.addRow(self.stream_debug_check)
         config_buttons = QtWidgets.QWidget()
         config_button_layout = QtWidgets.QHBoxLayout(config_buttons)
         config_button_layout.setContentsMargins(0, 0, 0, 0)
@@ -626,6 +637,8 @@ class MainWindow(QtWidgets.QMainWindow):
         return RigConfig(
             sample_rate_hz=self.sample_rate_spin.value(),
             ain_settling_us=self.ain_settling_spin.value(),
+            stream_out_scan_mode=str(self.stream_out_mode_combo.currentData()),
+            labjack_stream_debug=self.stream_debug_check.isChecked(),
             backend=BackendKind(self.backend_combo.currentText()),
             modulations=tuple(mods),
             analog_inputs=analog_inputs,
@@ -716,6 +729,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.config.sample_rate_hz,
             ),
             "waveforms": getattr(self.backend, "waveform_info", []),
+            "stream_debug_log_path": getattr(self.backend, "debug_log_path", None),
+            "stream_out_scan_mode": self.config.stream_out_scan_mode,
         }
         self._update_waveform_status(runtime_metadata["waveforms"])
 
@@ -839,6 +854,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.backend_combo.setCurrentText(config.backend.value)
         self.sample_rate_spin.setValue(config.sample_rate_hz)
         self.ain_settling_spin.setValue(config.ain_settling_us)
+        mode_index = self.stream_out_mode_combo.findData(config.stream_out_scan_mode)
+        self.stream_out_mode_combo.setCurrentIndex(max(0, mode_index))
+        self.stream_debug_check.setChecked(config.labjack_stream_debug)
         self.display_seconds_spin.setValue(float(ui.get("display_seconds", 20.0)))
         self.output_dir_edit.setText(str(ui.get("output_dir", Path.cwd() / "data")))
         self.session_name_edit.setText(

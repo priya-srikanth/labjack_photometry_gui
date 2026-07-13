@@ -3,6 +3,8 @@ from __future__ import annotations
 import math
 import queue
 import threading
+from datetime import datetime
+from pathlib import Path
 import numpy as np
 
 from labjack_photometry_gui.hardware.base import AcquisitionBlock, PhotometryBackend
@@ -32,9 +34,11 @@ class LabJackT7Backend(PhotometryBackend):
         self.hardware_scan_names: list[str] = []
         self.stream_out_count = 0
         self.waveform_info: list[dict[str, float | int | str]] = []
+        self.debug_log_path: str | None = None
         self.active_dac_outputs: set[str] = set()
         self._next_t = 0.0
         self._running = False
+        self._debug_reads_remaining = 0
         self._read_thread: threading.Thread | None = None
         self._stop_event = threading.Event()
         self._block_queue: queue.Queue[AcquisitionBlock] = queue.Queue(maxsize=200)
@@ -62,13 +66,11 @@ class LabJackT7Backend(PhotometryBackend):
             self.stop()
             self._configure_inputs()
             stream_out_names = self._configure_stream_out()
-            # LJM_PeriodicStreamOut configures the stream-out buffers. Keep the
-            # eStreamStart scan list to real input channels so readback framing
-            # cannot be shifted by non-measurement STREAM_OUT entries.
-            hardware_scan_names = list(self.input_names)
+            hardware_scan_names = self._hardware_scan_names(stream_out_names)
             self.hardware_scan_names = hardware_scan_names
             self.stream_out_count = len(stream_out_names)
             self.scan_names = list(self.input_names)
+            self._configure_stream_debug(stream_out_names, hardware_scan_names)
             aggregate_rate = self.config.sample_rate_hz * len(hardware_scan_names)
             if aggregate_rate > 100_000:
                 raise RuntimeError(
@@ -140,11 +142,13 @@ class LabJackT7Backend(PhotometryBackend):
     def _read_one_block(self) -> AcquisitionBlock:
         assert self.handle is not None
         data, _device_backlog, _ljm_backlog = self.ljm.eStreamRead(self.handle)
+        raw = np.asarray(data, dtype=float)
+        self._write_stream_debug(raw)
         input_width = len(self.input_names)
         if input_width == 0:
             return AcquisitionBlock(np.array([]), {}, {})
 
-        input_arr = self._input_array_from_stream_read(np.asarray(data, dtype=float))
+        input_arr = self._input_array_from_stream_read(raw)
         n_samples = input_arr.shape[0]
         t = self._next_t + np.arange(n_samples) / self.actual_scan_rate_hz
         self._next_t = float(t[-1] + 1.0 / self.actual_scan_rate_hz)
@@ -160,6 +164,14 @@ class LabJackT7Backend(PhotometryBackend):
 
         return AcquisitionBlock(t, analog, digital)
 
+    def _hardware_scan_names(self, stream_out_names: list[str]) -> list[str]:
+        mode = self.config.stream_out_scan_mode
+        if mode == "leading":
+            return stream_out_names + self.input_names
+        if mode == "trailing":
+            return self.input_names + stream_out_names
+        return list(self.input_names)
+
     def _input_array_from_stream_read(self, data: np.ndarray) -> np.ndarray:
         input_width = len(self.input_names)
         hardware_width = len(self.hardware_scan_names)
@@ -168,6 +180,8 @@ class LabJackT7Backend(PhotometryBackend):
 
         if hardware_width > input_width and data.size % hardware_width == 0:
             arr = data.reshape((-1, hardware_width))
+            if self.config.stream_out_scan_mode == "leading":
+                return arr[:, self.stream_out_count : self.stream_out_count + input_width]
             return arr[:, :input_width]
 
         if data.size % input_width == 0:
@@ -182,6 +196,80 @@ class LabJackT7Backend(PhotometryBackend):
                 else "."
             )
         )
+
+    def _configure_stream_debug(
+        self,
+        stream_out_names: list[str],
+        hardware_scan_names: list[str],
+    ) -> None:
+        self._debug_reads_remaining = 0
+        self.debug_log_path = None
+        if not self.config.labjack_stream_debug:
+            return
+
+        log_dir = Path.cwd() / "data"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        path = log_dir / f"labjack_stream_debug_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+        self.debug_log_path = str(path)
+        self._debug_reads_remaining = 8
+        lines = [
+            "LabJack stream debug",
+            f"created_at={datetime.now().isoformat(timespec='seconds')}",
+            f"sample_rate_hz={self.config.sample_rate_hz}",
+            f"ain_settling_us={self.config.ain_settling_us}",
+            f"stream_out_scan_mode={self.config.stream_out_scan_mode}",
+            f"input_names={self.input_names}",
+            f"input_labels={self.input_labels}",
+            f"input_kinds={self.input_kinds}",
+            f"stream_out_names={stream_out_names}",
+            f"hardware_scan_names={hardware_scan_names}",
+            f"waveform_info={self.waveform_info}",
+            "",
+        ]
+        path.write_text("\n".join(lines), encoding="utf-8")
+
+    def _write_stream_debug(self, data: np.ndarray) -> None:
+        if self._debug_reads_remaining <= 0 or self.debug_log_path is None:
+            return
+
+        input_width = len(self.input_names)
+        hardware_width = len(self.hardware_scan_names)
+        candidate_widths = sorted(
+            {
+                width
+                for width in (
+                    input_width,
+                    hardware_width,
+                    max(1, input_width - 1),
+                    input_width + 1,
+                    input_width + self.stream_out_count,
+                )
+                if width > 0
+            }
+        )
+        lines = [
+            f"read_index={9 - self._debug_reads_remaining}",
+            f"data_size={data.size}",
+            f"input_width={input_width}",
+            f"hardware_width={hardware_width}",
+            f"stream_out_count={self.stream_out_count}",
+            "remainders="
+            + ", ".join(f"{width}:{data.size % width}" for width in candidate_widths),
+            "first_values="
+            + np.array2string(data[: min(48, data.size)], precision=5, separator=", "),
+        ]
+        for width in candidate_widths:
+            if data.size % width == 0:
+                matrix = data[: min(data.size, width * 4)].reshape((-1, width))
+                lines.append(
+                    f"first_rows_width_{width}="
+                    + np.array2string(matrix, precision=5, separator=", ")
+                )
+        lines.append("")
+        with Path(self.debug_log_path).open("a", encoding="utf-8") as handle:
+            handle.write("\n".join(lines))
+            handle.write("\n")
+        self._debug_reads_remaining -= 1
 
     def stop(self) -> None:
         self._stop_event.set()

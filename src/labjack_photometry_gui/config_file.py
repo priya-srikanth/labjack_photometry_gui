@@ -39,6 +39,12 @@ def _rig_config_from_dict(data: dict[str, Any]) -> RigConfig:
     return RigConfig(
         sample_rate_hz=float(data.get("sample_rate_hz", 2_000.0)),
         ain_settling_us=float(data.get("ain_settling_us", defaults.ain_settling_us)),
+        stream_out_scan_mode=str(
+            data.get("stream_out_scan_mode", defaults.stream_out_scan_mode)
+        ),
+        labjack_stream_debug=bool(
+            data.get("labjack_stream_debug", defaults.labjack_stream_debug)
+        ),
         backend=BackendKind(data.get("backend", BackendKind.MOCK.value)),
         modulations=tuple(
             ModulationChannel(**item)
