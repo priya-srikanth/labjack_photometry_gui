@@ -14,6 +14,7 @@ The first implementation supports a mock backend so the interface can run withou
 The live display uses WaveSurfer-style stacked strip charts: one row per signal, with the channel label on the left, the raw trace in the center, and the latest value on the right.
 Strip-chart row height scales with the window so all channels stay visible when possible, with scroll bars as fallback for very small windows.
 Analog and digital input maps are editable in the GUI, so channels can be reassigned at the bench before starting a session.
+Analog rows also have editable display min/max voltage columns. Use these to set detector rows, DAC monitor rows, and analog TTL-like rows to sensible visual ranges, such as `-1` to `6 V` for a TTL carried on an `AIN` input.
 Input rows can be reordered by dragging rows or using the Up/Down buttons. The Display Order tab can interleave analog and digital rows for the live strip-chart view.
 GUI settings can be saved to or loaded from a JSON config file, including channel maps, display order, modulation settings, sample rate, backend, and output settings.
 
@@ -51,7 +52,7 @@ If each wavelength is split to left/right hemisphere LEDs, both hemispheres rece
 | Cue TTL | `FIO5` |
 | Reward TTL | `FIO6` |
 
-Behavior digital rows are present in the default map but disabled by default. Enable them when the Teensy/behavior system is connected and sharing ground with the LabJack.
+Behavior digital rows are present in the default map but disabled by default. Enable them when the Teensy/behavior system is connected and sharing ground with the LabJack. Digital `FIO` rows plot logical state `0/1`, not voltage, so the analog display range settings do not apply to those rows.
 
 ## Frequency Plan
 

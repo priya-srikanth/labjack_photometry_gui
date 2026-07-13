@@ -50,6 +50,7 @@ Unused analog inputs can float and show meaningless voltages in Kipling. That is
 | Digital ground | `GND` | pins `1`, `9`, `20`, `28`, `30` | Teensy ground |
 
 TTL should be `0-3.3 V` or `0-5 V`. The Teensy and LabJack must share ground.
+In the GUI, these true digital rows are displayed as logical `0/1`; they do not use analog voltage plot ranges. If you temporarily route a TTL-like line to an analog `AIN` channel for voltage-level debugging, set that analog row's display range to something like `-1` to `6 V`.
 
 If the behavior Teensy is not connected or not driving a line, the corresponding LabJack digital input can float and appear to toggle randomly. Disable unused digital rows in the GUI, or add proper pull-down/pull-up wiring so each line has a defined idle state.
 

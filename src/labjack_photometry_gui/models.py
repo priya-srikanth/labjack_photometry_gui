@@ -26,6 +26,8 @@ class AnalogInputChannel:
     channel: str
     units: str = "V"
     enabled: bool = True
+    display_min_v: float = -0.25
+    display_max_v: float = 5.25
 
 
 @dataclass(frozen=True)

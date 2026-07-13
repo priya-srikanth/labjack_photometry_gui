@@ -32,12 +32,19 @@ class SignalStripChart(QtWidgets.QWidget):
         channel: str,
         color: str,
         is_digital: bool = False,
+        y_min: float = -0.25,
+        y_max: float = 5.25,
         parent: QtWidgets.QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self.name = name
         self.channel = channel
         self.is_digital = is_digital
+        if y_min == y_max:
+            y_min -= 0.5
+            y_max += 0.5
+        self.y_min = y_min
+        self.y_max = y_max
         self.x_values = np.array([], dtype=float)
         self.y_values = np.array([], dtype=float)
         self.setMinimumWidth(720)
@@ -64,6 +71,8 @@ class SignalStripChart(QtWidgets.QWidget):
         self.plot.getPlotItem().hideAxis("bottom")
         if is_digital:
             self.plot.setYRange(-0.2, 1.2, padding=0)
+        else:
+            self.plot.setYRange(self.y_min, self.y_max, padding=0)
         self.curve = self.plot.plot(pen=pg.mkPen(color, width=1.4))
         layout.addWidget(self.plot, stretch=1)
 
@@ -120,14 +129,8 @@ class SignalStripChart(QtWidgets.QWidget):
         relative_x = x_plot - self.x_values[-1]
         self.curve.setData(relative_x, y_plot)
         self.plot.setXRange(-display_seconds, 0.0, padding=0)
-        if not self.is_digital and y_plot.size:
-            y_min = float(np.nanmin(y_plot))
-            y_max = float(np.nanmax(y_plot))
-            if y_min == y_max:
-                y_min -= 0.5
-                y_max += 0.5
-            span = y_max - y_min
-            self.plot.setYRange(y_min - 0.08 * span, y_max + 0.08 * span, padding=0)
+        if not self.is_digital:
+            self.plot.setYRange(self.y_min, self.y_max, padding=0)
 
         if self.is_digital:
             self.value_label.setText(str(int(round(float(self.y_values[-1])))))
@@ -330,10 +333,15 @@ class MainWindow(QtWidgets.QMainWindow):
         container = QtWidgets.QWidget()
         layout = QtWidgets.QVBoxLayout(container)
         table = QtWidgets.QTableWidget()
-        table.setColumnCount(3)
-        table.setHorizontalHeaderLabels(["On", "Name", "Channel"])
+        table.setProperty("kind", kind)
+        if kind == "analog":
+            table.setColumnCount(5)
+            table.setHorizontalHeaderLabels(["On", "Name", "Channel", "Min V", "Max V"])
+        else:
+            table.setColumnCount(3)
+            table.setHorizontalHeaderLabels(["On", "Name", "Channel"])
         table.verticalHeader().setVisible(False)
-        table.horizontalHeader().setStretchLastSection(True)
+        table.horizontalHeader().setStretchLastSection(kind == "digital")
         table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
         table.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.SingleSelection)
         table.setDragDropMode(QtWidgets.QAbstractItemView.DragDropMode.InternalMove)
@@ -410,7 +418,14 @@ class MainWindow(QtWidgets.QMainWindow):
     ) -> None:
         table.setRowCount(0)
         for channel in channels:
-            self._add_channel_row(table, channel.name, channel.channel, channel.enabled)
+            self._add_channel_row(
+                table,
+                channel.name,
+                channel.channel,
+                channel.enabled,
+                getattr(channel, "display_min_v", -0.25),
+                getattr(channel, "display_max_v", 5.25),
+            )
         table.resizeColumnsToContents()
 
     def _add_channel_row(
@@ -419,10 +434,12 @@ class MainWindow(QtWidgets.QMainWindow):
         name: str = "",
         channel: str = "",
         enabled: bool = True,
+        min_v: float = -0.25,
+        max_v: float = 5.25,
     ) -> None:
         row = table.rowCount()
         table.insertRow(row)
-        self._set_row_values(table, row, enabled, name, channel)
+        self._set_row_values(table, row, enabled, name, channel, min_v, max_v)
 
     def _remove_selected_rows(self, table: QtWidgets.QTableWidget) -> None:
         rows = sorted({index.row() for index in table.selectedIndexes()}, reverse=True)
@@ -444,14 +461,20 @@ class MainWindow(QtWidgets.QMainWindow):
         self._set_row_values(table, target_row, *row_values)
         table.selectRow(target_row)
 
-    def _row_values(self, table: QtWidgets.QTableWidget, row: int) -> tuple[bool, str, str]:
+    def _row_values(
+        self,
+        table: QtWidgets.QTableWidget,
+        row: int,
+    ) -> tuple[bool, str, str, float, float]:
         enabled_item = table.item(row, 0)
         name_item = table.item(row, 1)
         channel_item = table.item(row, 2)
         enabled = enabled_item.checkState() == QtCore.Qt.CheckState.Checked
         name = name_item.text() if name_item is not None else ""
         channel = channel_item.text() if channel_item is not None else ""
-        return enabled, name, channel
+        min_v = self._table_float(table, row, 3, -0.25)
+        max_v = self._table_float(table, row, 4, 5.25)
+        return enabled, name, channel, min_v, max_v
 
     def _set_row_values(
         self,
@@ -460,6 +483,8 @@ class MainWindow(QtWidgets.QMainWindow):
         enabled: bool,
         name: str,
         channel: str,
+        min_v: float = -0.25,
+        max_v: float = 5.25,
     ) -> None:
         enabled_item = QtWidgets.QTableWidgetItem()
         enabled_item.setFlags(
@@ -473,6 +498,9 @@ class MainWindow(QtWidgets.QMainWindow):
         table.setItem(row, 0, enabled_item)
         table.setItem(row, 1, QtWidgets.QTableWidgetItem(name))
         table.setItem(row, 2, QtWidgets.QTableWidgetItem(channel))
+        if table.columnCount() >= 5:
+            table.setItem(row, 3, QtWidgets.QTableWidgetItem(f"{min_v:g}"))
+            table.setItem(row, 4, QtWidgets.QTableWidgetItem(f"{max_v:g}"))
 
     def _apply_channel_map_preview(self) -> None:
         try:
@@ -495,13 +523,13 @@ class MainWindow(QtWidgets.QMainWindow):
         if hasattr(self, "analog_table"):
             keys.extend(
                 f"ai:{name}"
-                for enabled, name, _channel in self._table_rows(self.analog_table)
+                for enabled, name, _channel, _min_v, _max_v in self._analog_table_rows()
                 if enabled
             )
         if hasattr(self, "digital_table"):
             keys.extend(
                 f"di:{name}"
-                for enabled, name, _channel in self._table_rows(self.digital_table)
+                for enabled, name, _channel in self._digital_table_rows()
                 if enabled
             )
         return keys
@@ -558,12 +586,18 @@ class MainWindow(QtWidgets.QMainWindow):
                 )
             )
         analog_inputs = tuple(
-            AnalogInputChannel(name=name, channel=channel, enabled=enabled)
-            for enabled, name, channel in self._table_rows(self.analog_table)
+            AnalogInputChannel(
+                name=name,
+                channel=channel,
+                enabled=enabled,
+                display_min_v=min_v,
+                display_max_v=max_v,
+            )
+            for enabled, name, channel, min_v, max_v in self._analog_table_rows()
         )
         digital_inputs = tuple(
             DigitalInputChannel(name=name, channel=channel, enabled=enabled)
-            for enabled, name, channel in self._table_rows(self.digital_table)
+            for enabled, name, channel in self._digital_table_rows()
         )
         _validate_unique_enabled_names(analog_inputs, digital_inputs)
         current_keys = _display_keys_from_config(analog_inputs, digital_inputs)
@@ -583,7 +617,24 @@ class MainWindow(QtWidgets.QMainWindow):
             digital_inputs=digital_inputs,
         )
 
-    def _table_rows(self, table: QtWidgets.QTableWidget) -> list[tuple[bool, str, str]]:
+    def _analog_table_rows(self) -> list[tuple[bool, str, str, float, float]]:
+        rows = []
+        for enabled, name, channel, min_v, max_v in self._table_rows(self.analog_table):
+            if enabled and min_v >= max_v:
+                raise ValueError(f"Analog input '{name}' needs Min V lower than Max V.")
+            rows.append((enabled, name, channel, min_v, max_v))
+        return rows
+
+    def _digital_table_rows(self) -> list[tuple[bool, str, str]]:
+        return [
+            (enabled, name, channel)
+            for enabled, name, channel, _min_v, _max_v in self._table_rows(self.digital_table)
+        ]
+
+    def _table_rows(
+        self,
+        table: QtWidgets.QTableWidget,
+    ) -> list[tuple[bool, str, str, float, float]]:
         rows = []
         for row in range(table.rowCount()):
             enabled_item = table.item(row, 0)
@@ -596,8 +647,27 @@ class MainWindow(QtWidgets.QMainWindow):
                 continue
             if enabled and (not name or not channel):
                 raise ValueError("Every enabled input row needs both a name and a channel.")
-            rows.append((enabled, name, channel))
+            min_v = self._table_float(table, row, 3, -0.25)
+            max_v = self._table_float(table, row, 4, 5.25)
+            rows.append((enabled, name, channel, min_v, max_v))
         return rows
+
+    def _table_float(
+        self,
+        table: QtWidgets.QTableWidget,
+        row: int,
+        column: int,
+        default: float,
+    ) -> float:
+        item = table.item(row, column)
+        if item is None or not item.text().strip():
+            return default
+        try:
+            return float(item.text())
+        except ValueError as exc:
+            name_item = table.item(row, 1)
+            name = name_item.text().strip() if name_item is not None else f"row {row + 1}"
+            raise ValueError(f"Invalid numeric display range for '{name}'.") from exc
 
     def _toggle_start(self) -> None:
         if self.timer.isActive():
@@ -793,6 +863,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 channel=channel.channel,
                 color=pg.intColor(color_index).name(),
                 is_digital=is_digital,
+                y_min=-0.2 if is_digital else channel.display_min_v,
+                y_max=1.2 if is_digital else channel.display_max_v,
             )
             self.strip_charts[channel.name] = chart
             self.chart_layout.addWidget(chart)
@@ -843,7 +915,11 @@ class MainWindow(QtWidgets.QMainWindow):
         display_seconds = self.display_seconds_spin.value()
         for name, values in plot_block.analog.items():
             if name in self.strip_charts:
-                self.strip_charts[name].push(plot_block.t_seconds, values, display_seconds)
+                self.strip_charts[name].push(
+                    plot_block.t_seconds,
+                    values,
+                    display_seconds,
+                )
         for name, values in plot_block.digital.items():
             if name in self.strip_charts:
                 self.strip_charts[name].push(plot_block.t_seconds, values, display_seconds)

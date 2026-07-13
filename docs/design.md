@@ -24,6 +24,8 @@ The live display should follow the lab's Widefield DAQ recorder / WaveSurfer-sty
 - raw trace shown in the middle
 - latest value shown at the right
 - analog and digital channels are visually separated by their own rows rather than overlaid on one plot
+- analog rows have editable display voltage ranges
+- digital rows use fixed logical `0/1` scaling
 - row heights shrink/grow with the available display height so the full channel set remains visible when possible
 - horizontal/vertical scroll bars remain available when the window is too small for the full recorder view
 
@@ -66,6 +68,7 @@ The behavior Teensy should share ground with the LabJack. TTL lines should be 0-
 Unused or disconnected digital inputs can float. Behavior inputs are disabled by default in the GUI and should be enabled once the behavior Teensy is connected or the lines have pull-down/pull-up resistors defining an idle state.
 
 The GUI input map is editable at runtime. Users can reassign physical LabJack channels, rename signals, enable/disable rows, add spare channels, and apply the map to rebuild the live strip-chart display before recording.
+Analog rows also expose per-channel display min/max voltage settings. A TTL-like signal recorded on an analog input can be displayed with a range such as `-1` to `6 V`; a TTL recorded on a true LabJack digital `FIO` input is displayed as logical `0` or `1`.
 Input acquisition order follows the analog/digital table order. The separate Display Order tab controls the live strip-chart order and can interleave analog and digital signals, such as detector rows with behavior TTLs.
 
 ## Config Files
@@ -74,7 +77,7 @@ The GUI can save and load JSON config files for reusable rig setups. Config file
 
 - backend and sample rate
 - modulation output names/channels/frequencies/offsets/amplitudes
-- analog and digital input maps, including row order
+- analog and digital input maps, including row order and analog display ranges
 - display window length
 - output directory/session name/save setting
 
