@@ -62,11 +62,10 @@ class LabJackT7Backend(PhotometryBackend):
             self.stop()
             self._configure_inputs()
             stream_out_names = self._configure_stream_out()
-            # Put stream-out entries first. Some LJM/T7 stream configurations
-            # include placeholder values for STREAM_OUT entries in readback and
-            # some effectively return only input values. Keeping outputs first
-            # lets us discard those placeholders without shifting input columns.
-            hardware_scan_names = stream_out_names + self.input_names
+            # Some LJM/T7 stream configurations include placeholder values for
+            # STREAM_OUT entries in readback. Keep stream-out entries trailing
+            # so real input columns remain first, then discard any placeholders.
+            hardware_scan_names = self.input_names + stream_out_names
             self.hardware_scan_names = hardware_scan_names
             self.stream_out_count = len(stream_out_names)
             self.scan_names = list(self.input_names)
@@ -169,7 +168,7 @@ class LabJackT7Backend(PhotometryBackend):
 
         if hardware_width > input_width and data.size % hardware_width == 0:
             arr = data.reshape((-1, hardware_width))
-            return arr[:, self.stream_out_count : self.stream_out_count + input_width]
+            return arr[:, :input_width]
 
         if data.size % input_width == 0:
             return data.reshape((-1, input_width))
