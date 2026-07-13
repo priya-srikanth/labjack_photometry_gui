@@ -29,6 +29,8 @@ class LabJackT7Backend(PhotometryBackend):
         self.input_labels: list[str] = []
         self.input_kinds: list[str] = []
         self.scan_names: list[str] = []
+        self.hardware_scan_names: list[str] = []
+        self.stream_out_count = 0
         self.waveform_info: list[dict[str, float | int | str]] = []
         self.active_dac_outputs: set[str] = set()
         self._next_t = 0.0
@@ -60,9 +62,13 @@ class LabJackT7Backend(PhotometryBackend):
             self.stop()
             self._configure_inputs()
             stream_out_names = self._configure_stream_out()
-            hardware_scan_names = self.input_names + stream_out_names
-            # STREAM_OUT entries advance DAC outputs in the hardware scan list,
-            # but LJM readback data contains only acquired input values.
+            # Put stream-out entries first. Some LJM/T7 stream configurations
+            # include placeholder values for STREAM_OUT entries in readback and
+            # some effectively return only input values. Keeping outputs first
+            # lets us discard those placeholders without shifting input columns.
+            hardware_scan_names = stream_out_names + self.input_names
+            self.hardware_scan_names = hardware_scan_names
+            self.stream_out_count = len(stream_out_names)
             self.scan_names = list(self.input_names)
             aggregate_rate = self.config.sample_rate_hz * len(hardware_scan_names)
             if aggregate_rate > 100_000:
@@ -135,12 +141,11 @@ class LabJackT7Backend(PhotometryBackend):
     def _read_one_block(self) -> AcquisitionBlock:
         assert self.handle is not None
         data, _device_backlog, _ljm_backlog = self.ljm.eStreamRead(self.handle)
-        num_addresses = len(self.scan_names)
-        if num_addresses == 0:
+        input_width = len(self.input_names)
+        if input_width == 0:
             return AcquisitionBlock(np.array([]), {}, {})
 
-        arr = np.asarray(data, dtype=float).reshape((-1, num_addresses))
-        input_arr = arr[:, : len(self.input_names)]
+        input_arr = self._input_array_from_stream_read(np.asarray(data, dtype=float))
         n_samples = input_arr.shape[0]
         t = self._next_t + np.arange(n_samples) / self.actual_scan_rate_hz
         self._next_t = float(t[-1] + 1.0 / self.actual_scan_rate_hz)
@@ -155,6 +160,29 @@ class LabJackT7Backend(PhotometryBackend):
                 digital[label] = values.astype(np.uint8)
 
         return AcquisitionBlock(t, analog, digital)
+
+    def _input_array_from_stream_read(self, data: np.ndarray) -> np.ndarray:
+        input_width = len(self.input_names)
+        hardware_width = len(self.hardware_scan_names)
+        if input_width == 0:
+            return np.empty((0, 0), dtype=float)
+
+        if hardware_width > input_width and data.size % hardware_width == 0:
+            arr = data.reshape((-1, hardware_width))
+            return arr[:, self.stream_out_count : self.stream_out_count + input_width]
+
+        if data.size % input_width == 0:
+            return data.reshape((-1, input_width))
+
+        raise RuntimeError(
+            "Unexpected LabJack stream read size: "
+            f"{data.size} values cannot be parsed as {input_width} input channels"
+            + (
+                f" or {hardware_width} hardware scan entries."
+                if hardware_width != input_width
+                else "."
+            )
+        )
 
     def stop(self) -> None:
         self._stop_event.set()
