@@ -221,9 +221,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.display_seconds_spin.setSuffix(" s")
         self.save_check = QtWidgets.QCheckBox("Save HDF5")
         self.save_check.setChecked(True)
-        self.session_name_edit = QtWidgets.QLineEdit(
-            f"photometry_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        )
+        self.session_name_edit = QtWidgets.QLineEdit("photometry")
         self.output_dir_edit = QtWidgets.QLineEdit(str(Path.cwd() / "data"))
         browse_button = QtWidgets.QPushButton("Browse")
         browse_button.clicked.connect(self._browse_output_dir)
@@ -237,7 +235,7 @@ class MainWindow(QtWidgets.QMainWindow):
         backend_layout.addRow("AIN settle", self.ain_settling_spin)
         backend_layout.addRow("Stream out", self.stream_out_mode_combo)
         backend_layout.addRow("Display", self.display_seconds_spin)
-        backend_layout.addRow("Session", self.session_name_edit)
+        backend_layout.addRow("Prefix", self.session_name_edit)
         backend_layout.addRow("Output", output_row)
         backend_layout.addRow(self.save_check)
         backend_layout.addRow(self.stream_debug_check)
@@ -742,9 +740,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self._update_waveform_status(runtime_metadata["waveforms"])
 
         if self.save_check.isChecked():
+            session_name = _timestamped_session_name(
+                self.session_name_edit.text().strip() or "photometry"
+            )
             session = SessionConfig(
                 output_dir=Path(self.output_dir_edit.text()),
-                session_name=self.session_name_edit.text().strip() or "photometry_session",
+                session_name=session_name,
                 save_h5=True,
             )
             self.recorder = H5Recorder(session, self.config, runtime_metadata=runtime_metadata)
@@ -755,7 +756,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.timer.start()
         self.start_button.setText("Stop")
         self.statusBar().showMessage(
-            f"Recording {self.config.backend.value} at {runtime_metadata['actual_sample_rate_hz']:.1f} Hz"
+            f"Recording {self.config.backend.value} to {self.recorder.path.name if self.recorder else 'memory'} "
+            f"at {runtime_metadata['actual_sample_rate_hz']:.1f} Hz"
         )
 
     def _stop_recording(self) -> None:
@@ -843,7 +845,6 @@ class MainWindow(QtWidgets.QMainWindow):
             {
                 "display_seconds": self.display_seconds_spin.value(),
                 "output_dir": self.output_dir_edit.text(),
-                "session_name": self.session_name_edit.text(),
                 "save_h5": self.save_check.isChecked(),
                 "display_order": self._display_order_keys_from_list(),
             },
@@ -879,9 +880,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.stream_debug_check.setChecked(config.labjack_stream_debug)
         self.display_seconds_spin.setValue(float(ui.get("display_seconds", 20.0)))
         self.output_dir_edit.setText(str(ui.get("output_dir", Path.cwd() / "data")))
-        self.session_name_edit.setText(
-            str(ui.get("session_name", f"photometry_{datetime.now().strftime('%Y%m%d_%H%M%S')}"))
-        )
         self.save_check.setChecked(bool(ui.get("save_h5", True)))
 
         for index, controls in enumerate(self.mod_controls):
@@ -1030,6 +1028,18 @@ def _validate_unique_enabled_names(
     duplicates = sorted({name for name in names if names.count(name) > 1})
     if duplicates:
         raise ValueError(f"Enabled channel names must be unique: {', '.join(duplicates)}")
+
+
+def _timestamped_session_name(prefix: str) -> str:
+    safe_prefix = _safe_filename_prefix(prefix) or "photometry"
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    return f"{safe_prefix}_{timestamp}"
+
+
+def _safe_filename_prefix(prefix: str) -> str:
+    safe = "".join(char if char.isalnum() or char in ("-", "_") else "_" for char in prefix)
+    safe = "_".join(part for part in safe.split("_") if part)
+    return safe.strip("._-")
 
 
 def _display_keys_from_config(
