@@ -178,14 +178,18 @@ class LabJackT7Backend(PhotometryBackend):
         if input_width == 0:
             return np.empty((0, 0), dtype=float)
 
+        if data.size % input_width == 0:
+            return data.reshape((-1, input_width))
+
         if hardware_width > input_width and data.size % hardware_width == 0:
+            # Some LJM/T7 stream-out configurations report extra scan entries in
+            # block sizing. Use this only when the data cannot be parsed as the
+            # enabled input scan list, otherwise ambiguous block sizes can be
+            # reshaped into a plausible but interleaved matrix.
             arr = data.reshape((-1, hardware_width))
             if self.config.stream_out_scan_mode == "leading":
                 return arr[:, self.stream_out_count : self.stream_out_count + input_width]
             return arr[:, :input_width]
-
-        if data.size % input_width == 0:
-            return data.reshape((-1, input_width))
 
         raise RuntimeError(
             "Unexpected LabJack stream read size: "
