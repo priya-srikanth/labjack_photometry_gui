@@ -201,6 +201,15 @@ class MainWindow(QtWidgets.QMainWindow):
         backend_layout = QtWidgets.QFormLayout(backend_group)
         self.backend_combo = QtWidgets.QComboBox()
         self.backend_combo.addItems([BackendKind.MOCK.value, BackendKind.LABJACK_T7.value])
+        self.labjack_connection_combo = QtWidgets.QComboBox()
+        self.labjack_connection_combo.addItem("Any", "ANY")
+        self.labjack_connection_combo.addItem("USB", "USB")
+        self.labjack_connection_combo.addItem("Ethernet", "ETHERNET")
+        self.labjack_connection_combo.setCurrentIndex(
+            max(0, self.labjack_connection_combo.findData(self.config.labjack_connection_type))
+        )
+        self.labjack_identifier_edit = QtWidgets.QLineEdit(self.config.labjack_identifier)
+        self.labjack_identifier_edit.setPlaceholderText("ANY or 192.168.7.207")
         self.sample_rate_spin = QtWidgets.QDoubleSpinBox()
         self.sample_rate_spin.setRange(100.0, 100_000.0)
         self.sample_rate_spin.setDecimals(0)
@@ -237,6 +246,8 @@ class MainWindow(QtWidgets.QMainWindow):
         output_layout.addWidget(self.output_dir_edit, stretch=1)
         output_layout.addWidget(browse_button)
         backend_layout.addRow("Backend", self.backend_combo)
+        backend_layout.addRow("LabJack connection", self.labjack_connection_combo)
+        backend_layout.addRow("LabJack identifier", self.labjack_identifier_edit)
         backend_layout.addRow("Sample rate", self.sample_rate_spin)
         backend_layout.addRow("AIN settle", self.ain_settling_spin)
         backend_layout.addRow("Stream out", self.stream_out_mode_combo)
@@ -649,6 +660,8 @@ class MainWindow(QtWidgets.QMainWindow):
             ain_settling_us=self.ain_settling_spin.value(),
             stream_out_scan_mode=str(self.stream_out_mode_combo.currentData()),
             labjack_stream_debug=self.stream_debug_check.isChecked(),
+            labjack_connection_type=str(self.labjack_connection_combo.currentData()),
+            labjack_identifier=self.labjack_identifier_edit.text().strip() or "ANY",
             backend=BackendKind(self.backend_combo.currentText()),
             modulations=tuple(mods),
             analog_inputs=analog_inputs,
@@ -755,6 +768,8 @@ class MainWindow(QtWidgets.QMainWindow):
             "waveforms": getattr(self.backend, "waveform_info", []),
             "stream_debug_log_path": getattr(self.backend, "debug_log_path", None),
             "stream_out_scan_mode": self.config.stream_out_scan_mode,
+            "labjack_connection_type": self.config.labjack_connection_type,
+            "labjack_identifier": self.config.labjack_identifier,
         }
         self._update_waveform_status(runtime_metadata["waveforms"])
 
@@ -907,6 +922,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def _load_config_into_controls(self, config: RigConfig, ui: dict[str, object]) -> None:
         self.config = config
         self.backend_combo.setCurrentText(config.backend.value)
+        connection_index = self.labjack_connection_combo.findData(config.labjack_connection_type)
+        self.labjack_connection_combo.setCurrentIndex(max(0, connection_index))
+        self.labjack_identifier_edit.setText(config.labjack_identifier)
         self.sample_rate_spin.setValue(config.sample_rate_hz)
         self.ain_settling_spin.setValue(config.ain_settling_us)
         mode_index = self.stream_out_mode_combo.findData(config.stream_out_scan_mode)

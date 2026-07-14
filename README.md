@@ -104,6 +104,24 @@ git pull
 
 Close any already-running GUI before testing updates; the running process will not pick up changed source files.
 
+## LabJack Connection
+
+The GUI can force the LabJack connection method. In the Session panel:
+
+| Field | Typical value |
+| --- | --- |
+| LabJack connection | `Any`, `USB`, or `Ethernet` |
+| LabJack identifier | `ANY`, a serial number, or an IP address such as `192.168.7.207` |
+
+For direct computer-to-T7 Ethernet using a USB-C Ethernet adapter, configure the T7 with a static Ethernet IP in Kipling, then set:
+
+```text
+LabJack connection: Ethernet
+LabJack identifier: 192.168.7.207
+```
+
+USB can remain plugged in for T7 power while data acquisition is forced over Ethernet.
+
 ## Run
 
 ```powershell

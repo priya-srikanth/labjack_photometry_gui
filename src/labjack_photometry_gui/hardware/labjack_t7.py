@@ -46,7 +46,11 @@ class LabJackT7Backend(PhotometryBackend):
         self._stream_error: Exception | None = None
 
     def connect(self) -> None:
-        self.handle = self.ljm.openS("T7", "ANY", "ANY")
+        self.handle = self.ljm.openS(
+            "T7",
+            self.config.labjack_connection_type,
+            self.config.labjack_identifier,
+        )
 
     def disconnect(self) -> None:
         if self.handle is not None:

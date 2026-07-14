@@ -45,6 +45,10 @@ def _rig_config_from_dict(data: dict[str, Any]) -> RigConfig:
         labjack_stream_debug=bool(
             data.get("labjack_stream_debug", defaults.labjack_stream_debug)
         ),
+        labjack_connection_type=str(
+            data.get("labjack_connection_type", defaults.labjack_connection_type)
+        ),
+        labjack_identifier=str(data.get("labjack_identifier", defaults.labjack_identifier)),
         backend=BackendKind(data.get("backend", BackendKind.MOCK.value)),
         modulations=tuple(
             ModulationChannel(**item)
