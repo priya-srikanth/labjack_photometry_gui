@@ -111,7 +111,7 @@ class SignalStripChart(QtWidgets.QWidget):
         t_seconds: np.ndarray,
         values: np.ndarray,
         display_seconds: float,
-        max_display_points: int = 1200,
+        max_display_points: int = 500,
     ) -> None:
         if t_seconds.size == 0 or values.size == 0:
             return
@@ -184,7 +184,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.display_order: list[str] = []
         self._pending_plot_blocks = []
         self._last_plot_update = 0.0
-        self._plot_interval_s = 0.20
+        self._plot_interval_s = 0.33
 
         self._build_ui()
         self._auto_load_startup_config()
