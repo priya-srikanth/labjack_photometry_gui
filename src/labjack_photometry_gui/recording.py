@@ -10,6 +10,7 @@ import h5py
 import numpy as np
 
 from labjack_photometry_gui.hardware.base import AcquisitionBlock
+from labjack_photometry_gui.metadata import application_metadata
 from labjack_photometry_gui.models import RigConfig, SessionConfig
 
 
@@ -35,10 +36,18 @@ class H5Recorder:
     def open(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.file = h5py.File(self.path, "w")
+        app_metadata = application_metadata()
+        runtime_metadata = {**app_metadata, **self._runtime_metadata}
         self.file.attrs["created_at"] = datetime.now().isoformat(timespec="seconds")
+        self.file.attrs["app_version"] = app_metadata["app_version"]
+        if app_metadata["git_commit"]:
+            self.file.attrs["git_commit"] = app_metadata["git_commit"]
+        if app_metadata["git_branch"]:
+            self.file.attrs["git_branch"] = app_metadata["git_branch"]
+        self.file.attrs["git_dirty"] = app_metadata["git_dirty"]
         self.file.attrs["rig_config_json"] = json.dumps(_jsonable_dataclass(self.rig), indent=2)
         self.file.attrs["runtime_metadata_json"] = json.dumps(
-            _jsonable_dataclass(self._runtime_metadata),
+            _jsonable_dataclass(runtime_metadata),
             indent=2,
         )
 

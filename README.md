@@ -133,9 +133,16 @@ HDF5 recordings include:
 - `time_seconds`
 - channel names
 - rig config JSON
-- runtime metadata, including actual LabJack connection
+- runtime metadata, including actual LabJack connection, app version, and git commit
 
 Files are appended and flushed periodically, so a crash should usually leave a readable file up to the last flush. A typical `5000 Hz`, `7 analog + 8 digital`, 80-minute session is roughly on the order of 1 GB.
+
+Quick recording checks:
+
+```powershell
+.\.venv\Scripts\photometry-h5-check.exe data\your_file.h5
+.\.venv\Scripts\photometry-demod-check.exe data\your_file.h5
+```
 
 ## Useful Docs
 
@@ -156,4 +163,10 @@ Run lint:
 
 ```powershell
 .\.venv\Scripts\python.exe -m ruff check src
+```
+
+Run tests:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest
 ```

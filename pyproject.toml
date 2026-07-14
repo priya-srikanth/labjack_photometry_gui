@@ -17,6 +17,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+    "pytest>=8.0",
     "ruff>=0.5",
 ]
 hardware = [
@@ -25,6 +26,8 @@ hardware = [
 
 [project.scripts]
 photometry-gui = "labjack_photometry_gui.app:main"
+photometry-h5-check = "labjack_photometry_gui.diagnostics:main"
+photometry-demod-check = "labjack_photometry_gui.demodulation:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

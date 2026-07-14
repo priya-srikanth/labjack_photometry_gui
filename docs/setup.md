@@ -8,7 +8,7 @@ The setup script creates `.venv` inside the repository and installs this checkou
 
 - GUI/runtime: `numpy`, `h5py`, `PySide6`, `pyqtgraph`
 - Hardware extra: `labjack-ljm`
-- Development extra: `ruff`
+- Development extra: `pytest`, `ruff`
 
 The Python package `labjack-ljm` is only the Python wrapper. Real LabJack hardware mode also requires LabJack's native LJM driver/software to be installed separately.
 
@@ -67,6 +67,19 @@ py -3.12 -m venv .venv
 ```
 
 Use `requirements.txt` for mock-only GUI use. Use `requirements-dev.txt` if you also want development tools.
+
+## Post-recording Checks
+
+The package installs two small command-line tools:
+
+```powershell
+.\.venv\Scripts\photometry-h5-check.exe data\your_file.h5
+.\.venv\Scripts\photometry-demod-check.exe data\your_file.h5
+```
+
+`photometry-h5-check` summarizes duration, sample count, channel names, LabJack connection metadata, high-voltage artifact counts, and lick-coupled detector deltas when a lick channel is present.
+
+`photometry-demod-check` performs a quick lock-in sanity check for the four detector channels using the carrier frequencies saved in the HDF5 rig config. It is intended for acquisition QC, not as a full analysis pipeline.
 
 ## Updating An Existing Rig Computer
 
