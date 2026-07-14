@@ -714,6 +714,19 @@ class MainWindow(QtWidgets.QMainWindow):
             self.statusBar().showMessage("Stopped")
             return
 
+        if not self.save_check.isChecked():
+            response = QtWidgets.QMessageBox.warning(
+                self,
+                "Saving disabled",
+                "Warning - saving is not enabled, would you like to proceed?",
+                QtWidgets.QMessageBox.StandardButton.Yes
+                | QtWidgets.QMessageBox.StandardButton.Cancel,
+                QtWidgets.QMessageBox.StandardButton.Cancel,
+            )
+            if response != QtWidgets.QMessageBox.StandardButton.Yes:
+                self.statusBar().showMessage("Start canceled; saving is disabled")
+                return
+
         self.config = self._config_from_controls()
         self._coerce_stream_out_mode_for_modulation()
         try:
