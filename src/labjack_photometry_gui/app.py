@@ -210,6 +210,8 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         self.labjack_identifier_edit = QtWidgets.QLineEdit(self.config.labjack_identifier)
         self.labjack_identifier_edit.setPlaceholderText("ANY or 192.168.7.207")
+        self.actual_connection_label = QtWidgets.QLabel("--")
+        self.actual_connection_label.setWordWrap(True)
         self.sample_rate_spin = QtWidgets.QDoubleSpinBox()
         self.sample_rate_spin.setRange(100.0, 100_000.0)
         self.sample_rate_spin.setDecimals(0)
@@ -248,6 +250,7 @@ class MainWindow(QtWidgets.QMainWindow):
         backend_layout.addRow("Backend", self.backend_combo)
         backend_layout.addRow("LabJack connection", self.labjack_connection_combo)
         backend_layout.addRow("LabJack identifier", self.labjack_identifier_edit)
+        backend_layout.addRow("Actual connection", self.actual_connection_label)
         backend_layout.addRow("Sample rate", self.sample_rate_spin)
         backend_layout.addRow("AIN settle", self.ain_settling_spin)
         backend_layout.addRow("Stream out", self.stream_out_mode_combo)
@@ -759,6 +762,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self._last_plot_update = 0.0
 
         self.backend.start()
+        actual_connection = getattr(self.backend, "connection_info", {})
+        actual_connection_text = _format_connection_info(actual_connection)
+        self.actual_connection_label.setText(actual_connection_text)
         runtime_metadata = {
             "actual_sample_rate_hz": getattr(
                 self.backend,
@@ -770,6 +776,7 @@ class MainWindow(QtWidgets.QMainWindow):
             "stream_out_scan_mode": self.config.stream_out_scan_mode,
             "labjack_connection_type": self.config.labjack_connection_type,
             "labjack_identifier": self.config.labjack_identifier,
+            "actual_labjack_connection": actual_connection,
         }
         self._update_waveform_status(runtime_metadata["waveforms"])
 
@@ -791,7 +798,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.start_button.setText("Stop")
         self.statusBar().showMessage(
             f"Recording {self.config.backend.value} to {self.recorder.path.name if self.recorder else 'memory'} "
-            f"at {runtime_metadata['actual_sample_rate_hz']:.1f} Hz"
+            f"at {runtime_metadata['actual_sample_rate_hz']:.1f} Hz via {actual_connection_text}"
         )
 
     def _stop_recording(self) -> None:
@@ -804,6 +811,8 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.recorder is not None:
             self.recorder.close()
             self.recorder = None
+        if hasattr(self, "actual_connection_label"):
+            self.actual_connection_label.setText("--")
 
     def _coerce_stream_out_mode_for_modulation(self) -> None:
         has_periodic_output = any(
@@ -1092,6 +1101,21 @@ def _safe_filename_prefix(prefix: str) -> str:
     safe = "".join(char if char.isalnum() or char in ("-", "_") else "_" for char in prefix)
     safe = "_".join(part for part in safe.split("_") if part)
     return safe.strip("._-")
+
+
+def _format_connection_info(info: object) -> str:
+    if not isinstance(info, dict) or not info:
+        return "not connected"
+
+    connection = str(info.get("connection_type_name", "unknown"))
+    ip_address = str(info.get("ip_address", "")).strip()
+    serial_number = str(info.get("serial_number", "")).strip()
+    parts = [connection]
+    if ip_address:
+        parts.append(ip_address)
+    if serial_number:
+        parts.append(f"serial {serial_number}")
+    return " ".join(parts)
 
 
 def _display_keys_from_config(

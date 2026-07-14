@@ -34,6 +34,7 @@ class LabJackT7Backend(PhotometryBackend):
         self.hardware_scan_names: list[str] = []
         self.stream_out_count = 0
         self.waveform_info: list[dict[str, float | int | str]] = []
+        self.connection_info: dict[str, int | str] = {}
         self.debug_log_path: str | None = None
         self.active_dac_outputs: set[str] = set()
         self._last_parse_mode = "none"
@@ -51,6 +52,7 @@ class LabJackT7Backend(PhotometryBackend):
             self.config.labjack_connection_type,
             self.config.labjack_identifier,
         )
+        self.connection_info = _handle_info(self.ljm, self.handle)
 
     def disconnect(self) -> None:
         if self.handle is not None:
@@ -438,6 +440,34 @@ def _sine_buffer(
     waveform = offset_v + amplitude_v * np.sin(2.0 * math.pi * cycles * phase)
     actual_frequency_hz = sample_rate_hz * cycles / buffer_samples
     return np.clip(waveform, 0.0, 5.0), actual_frequency_hz, cycles
+
+
+def _handle_info(ljm: object, handle: int) -> dict[str, int | str]:
+    device_type, connection_type, serial_number, ip_address, port, max_bytes = ljm.getHandleInfo(
+        handle
+    )
+    return {
+        "device_type": int(device_type),
+        "connection_type": int(connection_type),
+        "connection_type_name": _connection_type_name(ljm, int(connection_type)),
+        "serial_number": int(serial_number),
+        "ip_address": ljm.numberToIP(int(ip_address)) if int(ip_address) else "",
+        "port": int(port),
+        "max_bytes_per_message": int(max_bytes),
+    }
+
+
+def _connection_type_name(ljm: object, connection_type: int) -> str:
+    constants = ljm.constants
+    names = {
+        int(constants.ctUSB): "USB",
+        int(constants.ctETHERNET): "Ethernet",
+        int(constants.ctWIFI): "WiFi",
+        int(constants.ctNETWORK_TCP): "Network TCP",
+        int(constants.ctETHERNET_UDP): "Ethernet UDP",
+        int(constants.ctWIFI_UDP): "WiFi UDP",
+    }
+    return names.get(connection_type, f"Unknown ({connection_type})")
 
 
 def _best_periodic_buffer(
