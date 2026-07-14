@@ -30,7 +30,6 @@ class LabJackT7Backend(PhotometryBackend):
         self.input_names: list[str] = []
         self.input_labels: list[str] = []
         self.input_kinds: list[str] = []
-        self.digital_state_specs: list[tuple[str, int]] = []
         self.scan_names: list[str] = []
         self.hardware_scan_names: list[str] = []
         self.stream_out_count = 0
@@ -171,12 +170,8 @@ class LabJackT7Backend(PhotometryBackend):
             values = input_arr[:, index]
             if kind == "analog":
                 analog[label] = values
-            elif kind == "digital":
+            else:
                 digital[label] = (values >= 0.5).astype(np.uint8)
-            elif kind == "digital_state":
-                states = np.rint(values).astype(np.uint64)
-                for digital_label, bit_number in self.digital_state_specs:
-                    digital[digital_label] = ((states & (1 << bit_number)) != 0).astype(np.uint8)
 
         return AcquisitionBlock(t, analog, digital)
 
@@ -258,7 +253,6 @@ class LabJackT7Backend(PhotometryBackend):
             f"input_names={self.input_names}",
             f"input_labels={self.input_labels}",
             f"input_kinds={self.input_kinds}",
-            f"digital_state_specs={self.digital_state_specs}",
             f"stream_out_names={stream_out_names}",
             f"hardware_scan_names={hardware_scan_names}",
             f"waveform_info={self.waveform_info}",
@@ -329,7 +323,6 @@ class LabJackT7Backend(PhotometryBackend):
         self.input_names = []
         self.input_labels = []
         self.input_kinds = []
-        self.digital_state_specs = []
         self.ljm.eWriteName(self.handle, "AIN_ALL_SETTLING_US", self.config.ain_settling_us)
 
         for channel in self.config.analog_inputs:
@@ -342,19 +335,13 @@ class LabJackT7Backend(PhotometryBackend):
         for channel in self.config.digital_inputs:
             if channel.enabled:
                 input_name = channel.channel.upper()
-                bit_number = _digital_state_bit(input_name)
-                if bit_number is None:
-                    raise RuntimeError(f"Unsupported digital input channel: {channel.channel}")
-                self.digital_state_specs.append((channel.name, bit_number))
+                self.input_names.append(input_name)
+                self.input_labels.append(channel.name)
+                self.input_kinds.append("digital")
                 direction = _digital_direction_register(input_name)
                 if direction is not None:
                     register, bit = direction
                     direction_updates.setdefault(register, set()).add(bit)
-
-        if self.digital_state_specs:
-            self.input_names.append("DIO_STATE")
-            self.input_labels.append("DIO_STATE")
-            self.input_kinds.append("digital_state")
 
         for register, bits in direction_updates.items():
             current_value = int(self.ljm.eReadName(self.handle, register))
@@ -526,21 +513,6 @@ def _digital_direction_register(channel_name: str) -> tuple[str, int] | None:
     if 20 <= dio_number <= 22:
         return "MIO_DIRECTION", dio_number - 20
     return None
-
-
-def _digital_state_bit(channel_name: str) -> int | None:
-    for prefix, offset in (("FIO", 0), ("EIO", 8), ("CIO", 16), ("MIO", 20)):
-        if channel_name.startswith(prefix):
-            suffix = channel_name.removeprefix(prefix)
-            if suffix.isdigit():
-                return offset + int(suffix)
-
-    if not channel_name.startswith("DIO"):
-        return None
-    suffix = channel_name.removeprefix("DIO")
-    if not suffix.isdigit():
-        return None
-    return int(suffix)
 
 
 def _combine_blocks(blocks: list[AcquisitionBlock]) -> AcquisitionBlock:
