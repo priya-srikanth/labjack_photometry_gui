@@ -1,126 +1,56 @@
 # LabJack Photometry GUI
 
-Python GUI for running two-color, bilateral fiber photometry with a LabJack T7.
+Python GUI for two-color, bilateral fiber photometry with a LabJack T7.
 
-This project is intended for a rig with:
+The app can:
 
-- 2 analog modulation outputs from the LabJack T7 (`DAC0`, `DAC1`)
-- 4 detector amplifier analog inputs
-- 1 analog lick-board input
-- multiple behavior TTL inputs from a Teensy
+- Generate two LabJack DAC sine carriers for LED-driver modulation.
+- Record detector amplifier, DAC monitor, lick, and behavior TTL channels.
+- Save streaming data to HDF5 while showing WaveSurfer-style live strip charts.
+- Save/load editable rig configs, channel maps, display order, and output settings.
+- Run in mock mode without hardware.
 
-The GUI supports a mock backend for offline testing and a LabJack T7 backend using `labjack-ljm` for hardware acquisition and DAC stream-out.
+## Current Rig Defaults
 
-The live display uses WaveSurfer-style stacked strip charts: one row per signal, with the channel label on the left, the raw trace in the center, and the latest value on the right.
-Strip-chart row height scales with the window so all channels stay visible when possible, with scroll bars as fallback for very small windows.
-Analog and digital input maps are editable in the GUI, so channels can be reassigned at the bench before starting a session.
-Analog rows also have editable display min/max voltage columns. Use these to set detector rows, DAC monitor rows, and analog TTL-like rows to sensible visual ranges, such as `-1` to `6 V` for a TTL carried on an `AIN` input.
-Input rows can be reordered by dragging rows or using the Up/Down buttons. The Display Order tab can interleave analog and digital rows for the live strip-chart view.
-GUI settings can be saved to or loaded from a JSON config file, including channel maps, display order, modulation settings, sample rate, backend, and output settings. Config loading intentionally does not overwrite the current session prefix. Each saved recording uses the current prefix plus a fresh timestamp.
+The committed startup config is `config/default_gui_config.json`. It loads automatically on launch.
 
-On launch, the GUI automatically loads the first existing startup config from this order: `config/default_gui_config.json`, `data/default_gui_config.json`, then `data/labjack_photometry_config.json`. Saving a config from the GUI defaults to `data/labjack_photometry_config.json`, so that file can serve as the normal startup config. You can also point launch at a different config by setting the `LABJACK_PHOTOMETRY_CONFIG` environment variable to a JSON config path before running the GUI.
-
-## Planned Rig Signals
-
-See [LabJack T7 + CB37 Photometry Pinout](docs/labjack_cb37_pinout.md) for the full bench wiring map with DB37 pin numbers.
-
-### Outputs
-
-The T7 has two built-in analog outputs, so the default plan is:
-
-| LabJack output | Purpose |
+| Setting | Default |
 | --- | --- |
-| `DAC0` | 470 nm excitation sine modulation |
-| `DAC1` | 565 nm excitation sine modulation |
+| Backend | `LabJack T7` |
+| Connection | `USB` |
+| Sample rate | `5000 Hz` |
+| AIN settle | `50 us` |
+| Stream out | `Trailing` |
+| 470 nm carrier | `211 Hz`, `2.5 V` offset, `1.0 V` amplitude |
+| 565 nm carrier | `331 Hz`, `2.5 V` offset, `1.0 V` amplitude |
 
-If each wavelength is split to left/right hemisphere LEDs, both hemispheres receive the same carrier for that wavelength. Four fully independent analog sine outputs would require extra hardware, such as an additional DAC, an LJTick-DAC, NI DAQ, or dedicated function generator.
+USB is the recommended acquisition connection for this rig. Ethernet is supported, but bench tests showed intermittent single-sample artifacts over Ethernet that were absent over USB.
 
-### Inputs
+## Install On A New Windows Machine
 
-| Signal | Suggested LabJack channel |
-| --- | --- |
-| Left green detector | `AIN0` |
-| Right green detector | `AIN1` |
-| DAC0 loopback monitor | `AIN2` |
-| DAC1 loopback monitor | `AIN3` |
-| Left red detector | `AIN4` |
-| Right red detector | `AIN5` |
-| Lick analog board | `AIN6` |
-| Behavior sync | `FIO0` |
-| Position bit 0 | `FIO1` |
-| Position bit 1 | `FIO2` |
-| Position bit 2 | `FIO3` |
-| Position strobe | `FIO4` |
-| Cue TTL | `FIO5` |
-| Reward TTL | `FIO6` |
-
-Behavior digital rows are present in the default map but disabled by default. Enable them when the Teensy/behavior system is connected and sharing ground with the LabJack. Digital `FIO` rows plot logical state `0/1`, not voltage, so the analog display range settings do not apply to those rows.
-
-## Frequency Plan
-
-Use prime-number carrier frequencies to reduce harmonic overlap and accidental common factors. Example starting values:
-
-| Wavelength | Frequency |
-| --- | --- |
-| 470 nm | `211 Hz` |
-| 565 nm | `331 Hz` |
-
-If four independent carriers become available:
-
-| Channel | Frequency |
-| --- | --- |
-| 470 left | `211 Hz` |
-| 470 right | `257 Hz` |
-| 565 left | `331 Hz` |
-| 565 right | `431 Hz` |
-
-Keep carriers well below half the acquisition rate and far enough apart for demodulation windows/filters.
-
-## Setup
-
-See [Setup On A New Computer](docs/setup.md) for the full portable install instructions.
-
-Short Windows setup:
+1. Install Python 3.11 or newer.
+2. Install LabJack's native LJM software.
+3. Clone this repo.
+4. Open PowerShell in the repo folder.
+5. Run:
 
 ```powershell
 .\scripts\setup_windows.ps1
 ```
 
-For development tools too:
+For development tools:
 
 ```powershell
 .\scripts\setup_windows.ps1 -Dev
 ```
 
-For hardware mode, install LabJack's native LJM software first. The setup script installs the Python wrapper, but the native LabJack driver/software is a separate dependency.
-
-To update an existing checkout on a rig computer:
+Mock/demo mode without LabJack Python packages:
 
 ```powershell
-git pull
-.\scripts\setup_windows.ps1
-.\scripts\run_gui.ps1
+.\scripts\setup_windows.ps1 -NoHardware
 ```
 
-Close any already-running GUI before testing updates; the running process will not pick up changed source files.
-
-## LabJack Connection
-
-The GUI can force the LabJack connection method. In the Session panel:
-
-| Field | Typical value |
-| --- | --- |
-| LabJack connection | `Any`, `USB`, or `Ethernet` |
-| LabJack identifier | `ANY`, a serial number, or an IP address such as `192.168.7.207` |
-
-For direct computer-to-T7 Ethernet using a USB-C Ethernet adapter, configure the T7 with a static Ethernet IP in Kipling, then set:
-
-```text
-LabJack connection: Ethernet
-LabJack identifier: 192.168.7.207
-```
-
-USB can remain plugged in for T7 power while data acquisition is forced over Ethernet.
+More detail: [docs/setup.md](docs/setup.md).
 
 ## Run
 
@@ -134,36 +64,96 @@ or:
 .\.venv\Scripts\photometry-gui.exe
 ```
 
-The default acquisition scan rate is `2000 Hz`. This is intentionally conservative because the T7 aggregate stream limit is shared across analog inputs, digital inputs, and stream-out channels.
+To update an existing checkout:
 
-Set a modulation frequency to `0 Hz` to hold that DAC at the offset voltage for static wiring tests. For nonzero carriers, the LabJack DAC waveform is generated by stream-out updates, so the GUI reports the actual programmed carrier after Start.
+```powershell
+git pull
+.\scripts\setup_windows.ps1
+.\scripts\run_gui.ps1
+```
 
-The `AIN settle` setting adds settling time between multiplexed analog input readings. Increase it, or lower the sample rate, if changing DAC loopback signals appear to bleed into high-impedance or floating analog inputs.
+Close any already-running GUI before testing code changes.
 
-For nonzero LabJack DAC carriers, use `Trailing` or `Leading` stream-out mode. `Inputs only (no DAC waveform)` is for static/no-waveform diagnostics. `Trailing` appends `STREAM_OUT#` after inputs; `Leading` puts `STREAM_OUT#` before inputs. `Trailing` is the recommended default.
+## Startup Configs
 
-For LabJack stream-out troubleshooting, enable `Stream debug` before starting a run. The GUI writes a `data/labjack_stream_debug_*.txt` file with the raw `eStreamRead` framing, scan-list names, candidate reshape widths, and first raw values. Leave `Stream debug` off during real long sessions to avoid extra file I/O.
+On launch, the GUI loads the first existing config in this order:
 
-When stopping or disconnecting from LabJack hardware mode, the app explicitly writes `0 V` to `DAC0` and `DAC1` so LED driver modulation inputs return to a safe off command.
+1. `config/default_gui_config.json`
+2. `data/default_gui_config.json`
+3. `data/labjack_photometry_config.json`
 
-## Recording Files
+To override this for one launch, set `LABJACK_PHOTOMETRY_CONFIG` to a JSON config path before running the GUI.
 
-Recordings are saved as HDF5 files in the selected output folder. Each run is named:
+Config loading intentionally does not overwrite the current session prefix. Each recording uses:
 
 ```text
 <prefix>_YYYYMMDD_HHMMSS.h5
 ```
 
-The HDF5 recorder appends as data are acquired, updates `samples_written`, and flushes periodically so a crash should usually leave a readable file up to the last flush. Analog data are stored as `float32`, digital data as `uint8`, and datasets use fast lossless HDF5 compression.
+## Current Channel Map
 
-Expected size depends on sample rate, channel count, and signal compressibility. For a typical `5000 Hz`, `7 analog + 8 digital`, 80-minute session, expect roughly 1 GB order-of-magnitude per recording.
+Full CB37/DB37 pinout: [docs/labjack_cb37_pinout.md](docs/labjack_cb37_pinout.md).
 
-## Development Notes
+| Signal | LabJack channel |
+| --- | --- |
+| Left green detector | `AIN0` |
+| Right green detector | `AIN1` |
+| DAC0 monitor | `AIN2` |
+| DAC1 monitor | `AIN3` |
+| Left red detector | `AIN4` |
+| Right red detector | `AIN5` |
+| Lick analog board | `AIN6` |
+| Sync | `FIO0` |
+| Position bit 0 | `FIO1` |
+| Position bit 1 | `FIO2` |
+| Position bit 2 | `FIO3` |
+| Position strobe | `FIO4` |
+| Cue | `FIO5` |
+| Reward | `FIO6` |
+| Trial stop | `FIO7` |
+
+The current wiring uses analog lick on `AIN6`. A future Teensy-generated lick TTL could be added on a spare digital line, but that is not part of the current firmware/wiring.
+
+## Bench Notes
+
+- Power on the Doric detector amplifier boxes before recording. Unpowered amplifier outputs can float and mimic channel bleed-through.
+- Keep LED drivers in modulation mode only when the GUI is commanding safe voltages.
+- On stop/disconnect, the GUI writes `0 V` to `DAC0` and `DAC1`.
+- Use `0 Hz` carrier frequency to hold a static DAC offset for wiring checks.
+- Use `Trailing` stream-out for normal nonzero DAC carriers.
+- Leave `Stream debug` off for long recordings; enable it only for LabJack stream troubleshooting.
+- If analog lick appears to contaminate detector channels, first confirm the detector amplifiers are powered. If needed, disable the analog `Lick` row during photometry acquisition.
+
+## Recording Files
+
+HDF5 recordings include:
+
+- `analog`: float32 analog samples
+- `digital`: uint8 digital state samples
+- `time_seconds`
+- channel names
+- rig config JSON
+- runtime metadata, including actual LabJack connection
+
+Files are appended and flushed periodically, so a crash should usually leave a readable file up to the last flush. A typical `5000 Hz`, `7 analog + 8 digital`, 80-minute session is roughly on the order of 1 GB.
+
+## Useful Docs
+
+- [Setup on a new computer](docs/setup.md)
+- [LabJack T7 + CB37 pinout](docs/labjack_cb37_pinout.md)
+- [Design notes](docs/design.md)
+
+## Development
 
 - GUI: PySide6
 - Plotting: pyqtgraph
-- Display style: stacked raw strip charts, modeled after the lab Widefield DAQ recorder/WaveSurfer workflow
-- Data model: dataclasses
-- Hardware boundary: `hardware/base.py`
-- Mock backend: `hardware/mock.py`
-- LabJack backend: `hardware/labjack_t7.py`
+- Package metadata: `pyproject.toml`
+- Hardware abstraction: `src/labjack_photometry_gui/hardware/base.py`
+- LabJack backend: `src/labjack_photometry_gui/hardware/labjack_t7.py`
+- Mock backend: `src/labjack_photometry_gui/hardware/mock.py`
+
+Run lint:
+
+```powershell
+.\.venv\Scripts\python.exe -m ruff check src
+```

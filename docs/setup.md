@@ -51,7 +51,10 @@ For mock/demo mode only, without the Python LabJack wrapper:
 6. In the GUI:
    - Use `Mock` backend for a software-only smoke test.
    - Use `LabJack T7` backend only after LJM is installed and the T7 is visible in Kipling.
+   - Use `USB` as the default LabJack connection for this rig.
    - For nonzero DAC carriers, use `Trailing` stream-out mode unless actively debugging.
+
+The repository includes `config/default_gui_config.json`, which the GUI loads automatically on startup. That config is the current rig default: USB connection, `5000 Hz`, 470 nm carrier at `211 Hz`, 565 nm carrier at `331 Hz`, and the established channel map.
 
 ## Manual Setup
 
@@ -104,6 +107,8 @@ The second command should print `True` when the Python LabJack wrapper is instal
 
 For a hardware check without starting a recording, open Kipling first and confirm the T7 connects over USB or Ethernet. Then launch the GUI, choose `LabJack T7`, set both carrier frequencies to `0 Hz`, and verify that changing DAC offsets moves the DAC monitor channels.
 
+Before real acquisition, power on the Doric fluorescence detector amplifier boxes. Their outputs can float when the boxes are off, which can look like channel bleed-through in the LabJack viewer.
+
 ## Common Issues
 
 PowerShell may block local scripts on some computers. If so, run PowerShell as the current user and allow local scripts:
@@ -121,3 +126,7 @@ If hardware mode cannot import `labjack.ljm`, rerun:
 ```
 
 If `labjack.ljm` imports but cannot connect to the T7, install or repair the native LabJack LJM package and verify the device in Kipling.
+
+If all analog channels show occasional single-sample values near `10.117 V`, switch to USB if using Ethernet and repeat the test. On this rig, USB has been the cleaner acquisition path.
+
+If lick appears to bleed into detector channels, first confirm the detector amplifiers are powered. If the issue persists, disable the analog `Lick` row for photometry acquisition. A future hardware/firmware option would be to add a Teensy-generated lick TTL on a spare LabJack FIO input.
