@@ -26,7 +26,11 @@ from labjack_photometry_gui.models import (
 from labjack_photometry_gui.recording import H5Recorder
 
 
-DEFAULT_STARTUP_CONFIG = Path.cwd() / "config" / "default_gui_config.json"
+DEFAULT_STARTUP_CONFIG_CANDIDATES = (
+    Path.cwd() / "config" / "default_gui_config.json",
+    Path.cwd() / "data" / "default_gui_config.json",
+    Path.cwd() / "data" / "labjack_photometry_config.json",
+)
 STARTUP_CONFIG_ENV = "LABJACK_PHOTOMETRY_CONFIG"
 
 
@@ -915,8 +919,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _auto_load_startup_config(self) -> None:
         env_path = os.environ.get(STARTUP_CONFIG_ENV, "").strip()
-        path = Path(env_path) if env_path else DEFAULT_STARTUP_CONFIG
-        if not path.exists():
+        path = _startup_config_path(env_path)
+        if path is None:
             return
 
         try:
@@ -1116,6 +1120,17 @@ def _format_connection_info(info: object) -> str:
     if serial_number:
         parts.append(f"serial {serial_number}")
     return " ".join(parts)
+
+
+def _startup_config_path(env_path: str = "") -> Path | None:
+    if env_path:
+        path = Path(env_path)
+        return path if path.exists() else None
+
+    for path in DEFAULT_STARTUP_CONFIG_CANDIDATES:
+        if path.exists():
+            return path
+    return None
 
 
 def _display_keys_from_config(
