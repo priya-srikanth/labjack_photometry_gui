@@ -190,21 +190,17 @@ class LabJackT7Backend(PhotometryBackend):
             return np.empty((0, 0), dtype=float)
 
         if hardware_width > input_width and data.size % hardware_width == 0:
-            # LJM includes stream-out entries in the scan list. Drop those
-            # entries per scan, not by trimming the flattened raw buffer.
-            hardware_arr = data.reshape((-1, hardware_width))
-            if self.config.stream_out_scan_mode == "leading":
+            # LJM stream-out bookkeeping can appear as a tail in the raw read.
+            # Prefer this parse before the input-width parse so a coincidental
+            # modulus match cannot slide stream-out values into input channels.
+            scan_count = data.size // hardware_width
+            input_value_count = scan_count * input_width
+            if input_value_count >= input_width:
                 self._last_parse_mode = (
-                    f"hardware_leading:{hardware_width}->input_width:{input_width},"
-                    f"dropped:{self.stream_out_count}/scan"
+                    f"hardware_tail:{hardware_width}->input_width:{input_width},"
+                    f"dropped:{data.size - input_value_count}"
                 )
-                return hardware_arr[:, self.stream_out_count :]
-            if self.config.stream_out_scan_mode == "trailing":
-                self._last_parse_mode = (
-                    f"hardware_trailing:{hardware_width}->input_width:{input_width},"
-                    f"dropped:{self.stream_out_count}/scan"
-                )
-                return hardware_arr[:, :input_width]
+                return data[:input_value_count].reshape((-1, input_width))
 
         if data.size % input_width == 0:
             self._last_parse_mode = f"input_width:{input_width}"
