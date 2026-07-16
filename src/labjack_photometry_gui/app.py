@@ -27,10 +27,16 @@ from labjack_photometry_gui.models import (
 from labjack_photometry_gui.recording import H5Recorder
 
 
+def _repo_dir(name: str) -> Path:
+    path = Path(__file__).resolve().parents[2] / name
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
 DEFAULT_STARTUP_CONFIG_CANDIDATES = (
-    Path.cwd() / "config" / "default_gui_config.json",
-    Path.cwd() / "data" / "default_gui_config.json",
-    Path.cwd() / "data" / "labjack_photometry_config.json",
+    _repo_dir("config") / "default_gui_config.json",
+    _repo_dir("data") / "default_gui_config.json",
+    _repo_dir("data") / "labjack_photometry_config.json",
 )
 STARTUP_CONFIG_ENV = "LABJACK_PHOTOMETRY_CONFIG"
 
@@ -242,7 +248,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.save_check = QtWidgets.QCheckBox("Save HDF5")
         self.save_check.setChecked(True)
         self.session_name_edit = QtWidgets.QLineEdit("photometry")
-        self.output_dir_edit = QtWidgets.QLineEdit(str(Path.cwd() / "data"))
+        self.output_dir_edit = QtWidgets.QLineEdit(str(_repo_dir("data")))
         browse_button = QtWidgets.QPushButton("Browse")
         browse_button.clicked.connect(self._browse_output_dir)
         output_row = QtWidgets.QWidget()
@@ -860,10 +866,13 @@ class MainWindow(QtWidgets.QMainWindow):
         return MockBackend()
 
     def _browse_output_dir(self) -> None:
+        start_dir = Path(self.output_dir_edit.text()).expanduser()
+        if not start_dir.exists():
+            start_dir = _repo_dir("data")
         directory = QtWidgets.QFileDialog.getExistingDirectory(
             self,
             "Select output folder",
-            self.output_dir_edit.text(),
+            str(start_dir),
         )
         if directory:
             self.output_dir_edit.setText(directory)
@@ -875,7 +884,7 @@ class MainWindow(QtWidgets.QMainWindow):
             QtWidgets.QMessageBox.warning(self, "Invalid config", str(exc))
             return
 
-        default_path = Path(self.output_dir_edit.text()) / "labjack_photometry_config.json"
+        default_path = _repo_dir("config") / "labjack_photometry_config.json"
         path, _ = QtWidgets.QFileDialog.getSaveFileName(
             self,
             "Save config",
@@ -901,7 +910,7 @@ class MainWindow(QtWidgets.QMainWindow):
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
             self,
             "Load config",
-            self.output_dir_edit.text(),
+            str(_repo_dir("config")),
             "JSON config (*.json)",
         )
         if not path:
@@ -945,7 +954,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.stream_out_mode_combo.setCurrentIndex(max(0, mode_index))
         self.stream_debug_check.setChecked(config.labjack_stream_debug)
         self.display_seconds_spin.setValue(float(ui.get("display_seconds", 20.0)))
-        self.output_dir_edit.setText(str(ui.get("output_dir", Path.cwd() / "data")))
+        self.output_dir_edit.setText(str(ui.get("output_dir", _repo_dir("data"))))
         self.save_check.setChecked(bool(ui.get("save_h5", True)))
 
         for index, controls in enumerate(self.mod_controls):
