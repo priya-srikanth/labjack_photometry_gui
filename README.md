@@ -111,9 +111,9 @@ Full CB37/DB37 pinout: [docs/labjack_cb37_pinout.md](docs/labjack_cb37_pinout.md
 | Cue | `FIO5` |
 | Reward | `FIO6` |
 | Trial stop | `FIO7` |
-| Position strobe | `EIO0` optional, disabled by default |
+| Position strobe | `MIO0` optional, disabled by default |
 
-The current photometry config uses the Teensy-generated lick TTL on `FIO4` and leaves analog lick on `AIN6` disabled by default. If position strobe is needed in the LabJack file, wire the Teensy position-strobe output to an additional LabJack digital input such as `EIO0` and enable that row.
+The current photometry config uses the Teensy-generated lick TTL on `FIO4` and leaves analog lick on `AIN6` disabled by default. If position strobe is needed in the LabJack file, wire the Teensy position-strobe output to CB37-accessible `MIO0` and enable that row.
 
 ## Bench Notes
 

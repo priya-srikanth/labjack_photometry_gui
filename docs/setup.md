@@ -142,4 +142,4 @@ If `labjack.ljm` imports but cannot connect to the T7, install or repair the nat
 
 If all analog channels show occasional single-sample values near `10.117 V`, confirm the GUI is using USB and repeat the test. On this rig, USB has been the cleaner acquisition path.
 
-Analog lick on `AIN6` is disabled by default because it can bleed into detector channels on this rig. Use the Teensy-generated lick TTL on `FIO4` for photometry alignment. If you also need position strobe in the LabJack file, wire the Teensy strobe output to a spare LabJack digital input such as `EIO0` and enable that row in the GUI.
+Analog lick on `AIN6` is disabled by default because it can bleed into detector channels on this rig. Use the Teensy-generated lick TTL on `FIO4` for photometry alignment. If you also need position strobe in the LabJack file, wire the Teensy strobe output to CB37-accessible `MIO0` and enable that row in the GUI.

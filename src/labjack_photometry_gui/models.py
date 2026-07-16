@@ -73,7 +73,7 @@ class RigConfig:
             DigitalInputChannel("Cue", "FIO5", enabled=False),
             DigitalInputChannel("Reward", "FIO6", enabled=False),
             DigitalInputChannel("Trial stop", "FIO7", enabled=False),
-            DigitalInputChannel("Position strobe", "EIO0", enabled=False),
+            DigitalInputChannel("Position strobe", "MIO0", enabled=False),
         )
     )
 

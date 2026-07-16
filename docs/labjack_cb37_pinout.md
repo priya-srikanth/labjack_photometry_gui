@@ -8,9 +8,9 @@ Use the CB37 screw terminals for the DB37 channels. Keep all external devices sh
 
 | Purpose | LabJack channel | CB37 / DB37 pin | Wire to |
 | --- | --- | --- | --- |
-| 470 nm sine modulation | `DAC0` | pin `10` | 470 nm LED driver modulation input |
+| 470 nm sine modulation | `DAC0` | pin `11` | 470 nm LED driver modulation input |
 | 565 nm sine modulation | `DAC1` | pin `29` | 565 nm LED driver modulation input |
-| Ground reference | `GND` | pins `1`, `9`, `20`, `28`, `30` | LED driver modulation ground |
+| Ground reference | `GND` | pins `1`, `8`, `10`, `19`, `30` | LED driver modulation ground |
 
 The T7 DAC outputs are `0-5 V`. Use an offset sine wave such as `2.0 V offset, 1.0 V amplitude`, which produces a `1-3 V` command. Confirm the LED driver modulation input range before increasing offset or amplitude.
 
@@ -32,7 +32,7 @@ If recording the actual command waveforms, split or loop back:
 | Left rdLight detector amplifier | `AIN4` | pin `35` | amplifier voltage output |
 | Right rdLight detector amplifier | `AIN5` | pin `16` | amplifier voltage output |
 | Lick analog board | `AIN6` | pin `34` | analog row retained but disabled by default |
-| Analog ground/reference | `GND` | pins `1`, `9`, `20`, `28`, `30` | amplifier/lick board ground |
+| Analog ground/reference | `GND` | pins `1`, `8`, `10`, `19`, `30` | amplifier/lick board ground |
 
 Unused analog inputs can float and show meaningless voltages in Kipling. That is normal.
 
@@ -41,22 +41,22 @@ Unused analog inputs can float and show meaningless voltages in Kipling. That is
 | Purpose | LabJack channel | CB37 / DB37 pin | Connect from |
 | --- | --- | --- | --- |
 | Behavior sync pulse | `FIO0` | pin `6` | Teensy TTL output |
-| Position bit 0 | `FIO1` | pin `25` | Teensy TTL output |
+| Position bit 0 | `FIO1` | pin `24` | Teensy TTL output |
 | Position bit 1 | `FIO2` | pin `5` | Teensy TTL output |
-| Position bit 2 | `FIO3` | pin `24` | Teensy TTL output |
+| Position bit 2 | `FIO3` | pin `23` | Teensy TTL output |
 | Lick TTL | `FIO4` | pin `4` | Teensy pin 20 lick-state output |
-| Cue | `FIO5` | pin `23` | Teensy TTL output |
+| Cue | `FIO5` | pin `22` | Teensy TTL output |
 | Reward | `FIO6` | pin `3` | Teensy TTL output |
-| Trial stop | `FIO7` | pin `22` | Teensy TTL output |
-| Position strobe | `EIO0` | DB15 pin `4` | optional; wire from Teensy pin 11 and enable in GUI |
-| Digital ground | `GND` | pins `1`, `9`, `20`, `28`, `30` | Teensy ground |
+| Trial stop | `FIO7` | pin `21` | Teensy TTL output |
+| Position strobe | `MIO0` | pin `25` | optional; wire from Teensy pin 11 and enable in GUI |
+| Digital ground | `GND` | pins `1`, `8`, `10`, `19`, `30` | Teensy ground |
 
 TTL should be `0-3.3 V` or `0-5 V`. The Teensy and LabJack must share ground.
 In the GUI, these true digital rows are displayed as logical `0/1`; they do not use analog voltage plot ranges. If you temporarily route a TTL-like line to an analog `AIN` channel for voltage-level debugging, set that analog row's display range to something like `-1` to `6 V`.
 
 If the behavior Teensy is not connected or not driving a line, the corresponding LabJack digital input can float and appear to toggle randomly. Disable unused digital rows in the GUI, or add proper pull-down/pull-up wiring so each line has a defined idle state.
 
-The current recommended wiring uses a Teensy-generated lick TTL on `FIO4`; analog lick on `AIN6` is disabled by default because it can contaminate detector channels. The Teensy position-strobe output has moved to Teensy pin 11; wire it to an additional LabJack digital input, such as `EIO0`, only if you need the strobe recorded by the LabJack.
+The current recommended wiring uses a Teensy-generated lick TTL on `FIO4`; analog lick on `AIN6` is disabled by default because it can contaminate detector channels. The Teensy position-strobe output has moved to Teensy pin 11; wire it to `MIO0` only if you need the strobe recorded by the LabJack.
 
 ## Spare CB37 Channels
 
@@ -69,9 +69,9 @@ The current recommended wiring uses a Teensy-generated lick TTL on `FIO4`; analo
 | `AIN11` | pin `13` | spare analog input |
 | `AIN12` | pin `31` | spare analog input |
 | `AIN13` | pin `12` | spare analog input |
-| `MIO0` | pin `7` | spare digital I/O |
-| `MIO1` | pin `8` | spare digital I/O |
-| `MIO2` | pin `27` | spare digital I/O |
+| `MIO0` | pin `25` | optional position strobe / spare digital I/O |
+| `MIO1` | pin `7` | spare digital I/O |
+| `MIO2` | pin `26` | spare digital I/O |
 
 ## Bench Checkout
 

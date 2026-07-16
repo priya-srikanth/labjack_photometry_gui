@@ -127,7 +127,7 @@
       },
       {
         "name": "Position_strobe",
-        "channel": "EIO0",
+        "channel": "MIO0",
         "enabled": false
       }
     ]
