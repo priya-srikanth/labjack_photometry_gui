@@ -210,7 +210,7 @@ class MainWindow(QtWidgets.QMainWindow):
         controls_layout = QtWidgets.QVBoxLayout(controls)
         controls_layout.setContentsMargins(0, 0, 0, 0)
         controls_splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical)
-        controls_splitter.setChildrenCollapsible(False)
+        controls_splitter.setChildrenCollapsible(True)
         controls_layout.addWidget(controls_splitter)
 
         backend_group = QtWidgets.QGroupBox("Session")
@@ -351,7 +351,18 @@ class MainWindow(QtWidgets.QMainWindow):
         main_splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal)
         main_splitter.setChildrenCollapsible(False)
         layout.addWidget(main_splitter)
-        main_splitter.addWidget(controls)
+        controls_scroll_area = QtWidgets.QScrollArea()
+        controls_scroll_area.setWidgetResizable(True)
+        controls_scroll_area.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
+        controls_scroll_area.setHorizontalScrollBarPolicy(
+            QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        controls_scroll_area.setVerticalScrollBarPolicy(
+            QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
+        controls_scroll_area.setMinimumWidth(320)
+        controls_scroll_area.setWidget(controls)
+        main_splitter.addWidget(controls_scroll_area)
 
         plot_area = QtWidgets.QWidget()
         plot_layout = QtWidgets.QVBoxLayout(plot_area)
