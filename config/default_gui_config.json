@@ -106,7 +106,7 @@
         "enabled": true
       },
       {
-        "name": "Lick_TTL",
+        "name": "Lick_detector",
         "channel": "FIO4",
         "enabled": true
       },
@@ -144,7 +144,7 @@
       "ai:R_470_detect",
       "ai:L_565_detect",
       "ai:R_565_detect",
-      "di:Lick_TTL",
+      "di:Lick_detector",
       "di:Trial_stop",
       "di:Cue",
       "di:Reward",

@@ -69,7 +69,7 @@ class RigConfig:
             DigitalInputChannel("Position bit 0", "FIO1", enabled=False),
             DigitalInputChannel("Position bit 1", "FIO2", enabled=False),
             DigitalInputChannel("Position bit 2", "FIO3", enabled=False),
-            DigitalInputChannel("Lick TTL", "FIO4", enabled=False),
+            DigitalInputChannel("Lick detector", "FIO4", enabled=False),
             DigitalInputChannel("Cue", "FIO5", enabled=False),
             DigitalInputChannel("Reward", "FIO6", enabled=False),
             DigitalInputChannel("Trial stop", "FIO7", enabled=False),

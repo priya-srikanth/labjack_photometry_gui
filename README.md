@@ -113,7 +113,7 @@ Full CB37/DB37 pinout: [docs/labjack_cb37_pinout.md](docs/labjack_cb37_pinout.md
 | Trial stop | `FIO7` |
 | Position strobe | `MIO0` optional, disabled by default |
 
-The current photometry config uses the lick detector board output on `FIO4` as a digital lick line and leaves analog lick on `AIN6` disabled by default. If position strobe is needed in the LabJack file, wire the Teensy position-strobe output on Teensy pin `20` to CB37-accessible `MIO0` and enable that row.
+The current photometry config uses the lick detector board output on `FIO4` as a digital lick line named `Lick_detector`; on this rig it is active-low, so licks appear as brief low pulses. Analog lick on `AIN6` is disabled by default. If position strobe is needed in the LabJack file, wire the Teensy position-strobe output on Teensy pin `20` to CB37-accessible `MIO0` and enable that row.
 
 ## Bench Notes
 
