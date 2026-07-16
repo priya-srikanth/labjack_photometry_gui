@@ -107,13 +107,13 @@ Full CB37/DB37 pinout: [docs/labjack_cb37_pinout.md](docs/labjack_cb37_pinout.md
 | Position bit 0 | `FIO1` |
 | Position bit 1 | `FIO2` |
 | Position bit 2 | `FIO3` |
-| Lick TTL | `FIO4` |
+| Lick detector digital output | `FIO4` |
 | Cue | `FIO5` |
 | Reward | `FIO6` |
 | Trial stop | `FIO7` |
 | Position strobe | `MIO0` optional, disabled by default |
 
-The current photometry config uses the Teensy-generated lick TTL on `FIO4` and leaves analog lick on `AIN6` disabled by default. If position strobe is needed in the LabJack file, wire the Teensy position-strobe output to CB37-accessible `MIO0` and enable that row.
+The current photometry config uses the lick detector board output on `FIO4` as a digital lick line and leaves analog lick on `AIN6` disabled by default. If position strobe is needed in the LabJack file, wire the Teensy position-strobe output on Teensy pin `20` to CB37-accessible `MIO0` and enable that row.
 
 ## Bench Notes
 
@@ -123,7 +123,7 @@ The current photometry config uses the Teensy-generated lick TTL on `FIO4` and l
 - Use `0 Hz` carrier frequency to hold a static DAC offset for wiring checks.
 - Use `Trailing` stream-out for normal nonzero DAC carriers.
 - Leave `Stream debug` off for long recordings; enable it only for LabJack stream troubleshooting.
-- Analog lick on `AIN6` is disabled by default because it can contaminate detector channels on this rig. Use the Teensy lick TTL instead.
+- Analog lick on `AIN6` is disabled by default because it can contaminate detector channels on this rig. Use the lick detector board output on `FIO4` instead.
 
 ## Recording Files
 
