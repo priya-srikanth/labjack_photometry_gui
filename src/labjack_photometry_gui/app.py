@@ -203,10 +203,15 @@ class MainWindow(QtWidgets.QMainWindow):
     def _build_ui(self) -> None:
         central = QtWidgets.QWidget()
         layout = QtWidgets.QHBoxLayout(central)
+        layout.setContentsMargins(8, 8, 8, 8)
 
         controls = QtWidgets.QWidget()
-        controls.setMaximumWidth(390)
+        controls.setMinimumWidth(300)
         controls_layout = QtWidgets.QVBoxLayout(controls)
+        controls_layout.setContentsMargins(0, 0, 0, 0)
+        controls_splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical)
+        controls_splitter.setChildrenCollapsible(False)
+        controls_layout.addWidget(controls_splitter)
 
         backend_group = QtWidgets.QGroupBox("Session")
         backend_layout = QtWidgets.QFormLayout(backend_group)
@@ -282,7 +287,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.start_button = QtWidgets.QPushButton("Start")
         self.start_button.clicked.connect(self._toggle_start)
         backend_layout.addRow(self.start_button)
-        controls_layout.addWidget(backend_group)
+        controls_splitter.addWidget(backend_group)
 
         modulation_group = QtWidgets.QGroupBox("LED Modulation")
         modulation_layout = QtWidgets.QVBoxLayout(modulation_group)
@@ -331,18 +336,26 @@ class MainWindow(QtWidgets.QMainWindow):
         self.waveform_status_label.setWordWrap(True)
         modulation_layout.addWidget(self.waveform_status_label)
 
-        controls_layout.addWidget(modulation_group)
+        controls_splitter.addWidget(modulation_group)
 
         map_tabs = QtWidgets.QTabWidget()
         map_tabs.addTab(self._build_channel_table("analog"), "Analog In")
         map_tabs.addTab(self._build_channel_table("digital"), "Digital In")
         map_tabs.addTab(self._build_display_order_tab(), "Display Order")
-        controls_layout.addWidget(map_tabs, stretch=1)
+        controls_splitter.addWidget(map_tabs)
+        controls_splitter.setStretchFactor(0, 0)
+        controls_splitter.setStretchFactor(1, 0)
+        controls_splitter.setStretchFactor(2, 1)
+        controls_splitter.setSizes([310, 330, 430])
 
-        layout.addWidget(controls)
+        main_splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal)
+        main_splitter.setChildrenCollapsible(False)
+        layout.addWidget(main_splitter)
+        main_splitter.addWidget(controls)
 
         plot_area = QtWidgets.QWidget()
         plot_layout = QtWidgets.QVBoxLayout(plot_area)
+        plot_layout.setContentsMargins(0, 0, 0, 0)
         header = QtWidgets.QWidget()
         header_layout = QtWidgets.QHBoxLayout(header)
         header_layout.setContentsMargins(0, 0, 0, 0)
@@ -372,7 +385,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.chart_scroll_area.setWidget(self.chart_container)
         self.chart_scroll_area.viewport().installEventFilter(self)
         plot_layout.addWidget(self.chart_scroll_area, stretch=1)
-        layout.addWidget(plot_area, stretch=1)
+        main_splitter.addWidget(plot_area)
+        main_splitter.setStretchFactor(0, 0)
+        main_splitter.setStretchFactor(1, 1)
+        main_splitter.setSizes([390, 1050])
 
         self.setCentralWidget(central)
         self._rebuild_strip_charts()
