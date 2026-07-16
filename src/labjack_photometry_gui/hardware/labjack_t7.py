@@ -49,8 +49,8 @@ class LabJackT7Backend(PhotometryBackend):
     def connect(self) -> None:
         self.handle = self.ljm.openS(
             "T7",
-            self.config.labjack_connection_type,
-            self.config.labjack_identifier,
+            "USB",
+            self.config.labjack_identifier if self.config.labjack_identifier != "" else "ANY",
         )
         self.connection_info = _handle_info(self.ljm, self.handle)
 

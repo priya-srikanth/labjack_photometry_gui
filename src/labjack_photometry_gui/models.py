@@ -43,7 +43,7 @@ class RigConfig:
     ain_settling_us: float = 50.0
     stream_out_scan_mode: str = "trailing"
     labjack_stream_debug: bool = False
-    labjack_connection_type: str = "ANY"
+    labjack_connection_type: str = "USB"
     labjack_identifier: str = "ANY"
     backend: BackendKind = BackendKind.MOCK
     modulations: tuple[ModulationChannel, ...] = field(

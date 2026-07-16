@@ -24,7 +24,7 @@ The committed startup config is `config/default_gui_config.json`. It loads autom
 | 470 nm carrier | `211 Hz`, `2.5 V` offset, `1.0 V` amplitude |
 | 565 nm carrier | `331 Hz`, `2.5 V` offset, `1.0 V` amplitude |
 
-USB is the recommended acquisition connection for this rig. Ethernet is supported, but bench tests showed intermittent single-sample artifacts over Ethernet that were absent over USB.
+USB is the acquisition connection for this rig. Ethernet was tested but is intentionally disabled in the GUI because bench tests showed intermittent artifacts and less reliable first-attempt recognition than USB.
 
 ## Install On A New Windows Machine
 

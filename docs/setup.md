@@ -118,7 +118,7 @@ After setup:
 
 The second command should print `True` when the Python LabJack wrapper is installed. The third command launches the GUI. Hardware connection still depends on the native LabJack LJM software and a reachable T7.
 
-For a hardware check without starting a recording, open Kipling first and confirm the T7 connects over USB or Ethernet. Then launch the GUI, choose `LabJack T7`, set both carrier frequencies to `0 Hz`, and verify that changing DAC offsets moves the DAC monitor channels.
+For a hardware check without starting a recording, open Kipling first and confirm the T7 connects over USB. Then launch the GUI, choose `LabJack T7`, set both carrier frequencies to `0 Hz`, and verify that changing DAC offsets moves the DAC monitor channels.
 
 Before real acquisition, power on the Doric fluorescence detector amplifier boxes. Their outputs can float when the boxes are off, which can look like channel bleed-through in the LabJack viewer.
 
@@ -140,6 +140,6 @@ If hardware mode cannot import `labjack.ljm`, rerun:
 
 If `labjack.ljm` imports but cannot connect to the T7, install or repair the native LabJack LJM package and verify the device in Kipling.
 
-If all analog channels show occasional single-sample values near `10.117 V`, switch to USB if using Ethernet and repeat the test. On this rig, USB has been the cleaner acquisition path.
+If all analog channels show occasional single-sample values near `10.117 V`, confirm the GUI is using USB and repeat the test. On this rig, USB has been the cleaner acquisition path.
 
 Analog lick on `AIN6` is disabled by default because it can bleed into detector channels on this rig. Use the Teensy-generated lick TTL on `FIO4` for photometry alignment. If you also need position strobe in the LabJack file, wire the Teensy strobe output to a spare LabJack digital input such as `EIO0` and enable that row in the GUI.

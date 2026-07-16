@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import sys
 import time
+from dataclasses import replace
 from datetime import datetime
 from pathlib import Path
 
@@ -206,14 +207,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.backend_combo = QtWidgets.QComboBox()
         self.backend_combo.addItems([BackendKind.MOCK.value, BackendKind.LABJACK_T7.value])
         self.labjack_connection_combo = QtWidgets.QComboBox()
-        self.labjack_connection_combo.addItem("Any", "ANY")
         self.labjack_connection_combo.addItem("USB", "USB")
-        self.labjack_connection_combo.addItem("Ethernet", "ETHERNET")
         self.labjack_connection_combo.setCurrentIndex(
             max(0, self.labjack_connection_combo.findData(self.config.labjack_connection_type))
         )
         self.labjack_identifier_edit = QtWidgets.QLineEdit(self.config.labjack_identifier)
-        self.labjack_identifier_edit.setPlaceholderText("ANY or 192.168.7.207")
+        self.labjack_identifier_edit.setPlaceholderText("ANY or serial number")
         self.actual_connection_label = QtWidgets.QLabel("--")
         self.actual_connection_label.setWordWrap(True)
         self.sample_rate_spin = QtWidgets.QDoubleSpinBox()
@@ -933,6 +932,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.statusBar().showMessage(f"Loaded startup config: {path}")
 
     def _load_config_into_controls(self, config: RigConfig, ui: dict[str, object]) -> None:
+        if config.labjack_connection_type != "USB":
+            config = replace(config, labjack_connection_type="USB", labjack_identifier="ANY")
         self.config = config
         self.backend_combo.setCurrentText(config.backend.value)
         connection_index = self.labjack_connection_combo.findData(config.labjack_connection_type)
