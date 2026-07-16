@@ -2,7 +2,7 @@
   "version": 1,
   "rig": {
     "sample_rate_hz": 5000.0,
-    "ain_settling_us": 50.0,
+    "ain_settling_us": 10.0,
     "stream_out_scan_mode": "trailing",
     "labjack_stream_debug": false,
     "labjack_connection_type": "USB",
@@ -79,7 +79,7 @@
         "name": "Lick",
         "channel": "AIN6",
         "units": "V",
-        "enabled": true,
+        "enabled": false,
         "display_min_v": -0.25,
         "display_max_v": 3.5
       }
@@ -106,7 +106,7 @@
         "enabled": true
       },
       {
-        "name": "Position_strobe",
+        "name": "Lick_TTL",
         "channel": "FIO4",
         "enabled": true
       },
@@ -124,6 +124,11 @@
         "name": "Trial_stop",
         "channel": "FIO7",
         "enabled": true
+      },
+      {
+        "name": "Position_strobe",
+        "channel": "EIO0",
+        "enabled": false
       }
     ]
   },
@@ -139,14 +144,14 @@
       "ai:R_470_detect",
       "ai:L_565_detect",
       "ai:R_565_detect",
-      "di:Position_strobe",
+      "di:Lick_TTL",
       "di:Trial_stop",
       "di:Cue",
       "di:Reward",
       "di:Position_bit 0",
       "di:Position_bit 1",
       "di:Position_bit 2",
-      "ai:Lick"
+      "di:Position_strobe"
     ]
   }
 }

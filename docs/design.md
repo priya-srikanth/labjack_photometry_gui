@@ -62,7 +62,8 @@ Recommended stream scan list:
 - green detector analog channels: `AIN0` and `AIN1`
 - optional DAC loopback monitors: `AIN2` and `AIN3`
 - red detector analog channels: `AIN4` and `AIN5`
-- lick analog channel: `AIN6`
+- lick TTL: `FIO4`
+- lick analog channel: `AIN6` retained but disabled by default
 - behavior digital lines packed/read as digital state channels
 
 The behavior Teensy should share ground with the LabJack. TTL lines should be 0-3.3 V or 0-5 V. Do not feed TTL into `DAC0` or `DAC1`.

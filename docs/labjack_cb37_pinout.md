@@ -31,7 +31,7 @@ If recording the actual command waveforms, split or loop back:
 | DAC1 monitor | `AIN3` | pin `17` | optional `DAC1` loopback |
 | Left rdLight detector amplifier | `AIN4` | pin `35` | amplifier voltage output |
 | Right rdLight detector amplifier | `AIN5` | pin `16` | amplifier voltage output |
-| Lick analog board | `AIN6` | pin `34` | lick board analog output |
+| Lick analog board | `AIN6` | pin `34` | analog row retained but disabled by default |
 | Analog ground/reference | `GND` | pins `1`, `9`, `20`, `28`, `30` | amplifier/lick board ground |
 
 Unused analog inputs can float and show meaningless voltages in Kipling. That is normal.
@@ -44,10 +44,11 @@ Unused analog inputs can float and show meaningless voltages in Kipling. That is
 | Position bit 0 | `FIO1` | pin `25` | Teensy TTL output |
 | Position bit 1 | `FIO2` | pin `5` | Teensy TTL output |
 | Position bit 2 | `FIO3` | pin `24` | Teensy TTL output |
-| Position strobe | `FIO4` | pin `4` | Teensy TTL output |
+| Lick TTL | `FIO4` | pin `4` | Teensy pin 20 lick-state output |
 | Cue | `FIO5` | pin `23` | Teensy TTL output |
 | Reward | `FIO6` | pin `3` | Teensy TTL output |
 | Trial stop | `FIO7` | pin `22` | Teensy TTL output |
+| Position strobe | `EIO0` | DB15 pin `4` | optional; wire from Teensy pin 11 and enable in GUI |
 | Digital ground | `GND` | pins `1`, `9`, `20`, `28`, `30` | Teensy ground |
 
 TTL should be `0-3.3 V` or `0-5 V`. The Teensy and LabJack must share ground.
@@ -55,7 +56,7 @@ In the GUI, these true digital rows are displayed as logical `0/1`; they do not 
 
 If the behavior Teensy is not connected or not driving a line, the corresponding LabJack digital input can float and appear to toggle randomly. Disable unused digital rows in the GUI, or add proper pull-down/pull-up wiring so each line has a defined idle state.
 
-The current wiring uses the lick board analog voltage on `AIN6`. If analog lick ever contaminates detector channels, a future option is to add a Teensy-generated lick TTL on a spare digital input. That is not part of the current wiring unless the Teensy firmware and bench cable are updated.
+The current recommended wiring uses a Teensy-generated lick TTL on `FIO4`; analog lick on `AIN6` is disabled by default because it can contaminate detector channels. The Teensy position-strobe output has moved to Teensy pin 11; wire it to an additional LabJack digital input, such as `EIO0`, only if you need the strobe recorded by the LabJack.
 
 ## Spare CB37 Channels
 

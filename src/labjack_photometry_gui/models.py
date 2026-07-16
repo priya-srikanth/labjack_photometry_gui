@@ -60,7 +60,7 @@ class RigConfig:
             AnalogInputChannel("DAC1 monitor", "AIN3"),
             AnalogInputChannel("Left red detector", "AIN4"),
             AnalogInputChannel("Right red detector", "AIN5"),
-            AnalogInputChannel("Lick analog", "AIN6"),
+            AnalogInputChannel("Lick analog", "AIN6", enabled=False),
         )
     )
     digital_inputs: tuple[DigitalInputChannel, ...] = field(
@@ -69,9 +69,11 @@ class RigConfig:
             DigitalInputChannel("Position bit 0", "FIO1", enabled=False),
             DigitalInputChannel("Position bit 1", "FIO2", enabled=False),
             DigitalInputChannel("Position bit 2", "FIO3", enabled=False),
-            DigitalInputChannel("Position strobe", "FIO4", enabled=False),
+            DigitalInputChannel("Lick TTL", "FIO4", enabled=False),
             DigitalInputChannel("Cue", "FIO5", enabled=False),
             DigitalInputChannel("Reward", "FIO6", enabled=False),
+            DigitalInputChannel("Trial stop", "FIO7", enabled=False),
+            DigitalInputChannel("Position strobe", "EIO0", enabled=False),
         )
     )
 

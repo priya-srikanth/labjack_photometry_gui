@@ -79,7 +79,7 @@
         "name": "Lick",
         "channel": "AIN6",
         "units": "V",
-        "enabled": true,
+        "enabled": false,
         "display_min_v": -0.25,
         "display_max_v": 5.25
       }
@@ -106,7 +106,7 @@
         "enabled": true
       },
       {
-        "name": "Position_strobe",
+        "name": "Lick_TTL",
         "channel": "FIO4",
         "enabled": true
       },
@@ -124,13 +124,18 @@
         "name": "Trial_stop",
         "channel": "FIO7",
         "enabled": true
+      },
+      {
+        "name": "Position_strobe",
+        "channel": "EIO0",
+        "enabled": false
       }
     ]
   },
   "ui": {
     "display_seconds": 20.0,
     "output_dir": "C:\\Users\\Sabatini lab\\Documents\\labjack_photometry_gui\\data",
-    "save_h5": false,
+    "save_h5": true,
     "display_order": [
       "di:Sync",
       "ai:470_freq_mod_out",
@@ -139,14 +144,14 @@
       "ai:R_470_detect",
       "ai:L_565_detect",
       "ai:R_565_detect",
-      "di:Position_strobe",
+      "di:Lick_TTL",
       "di:Trial_stop",
       "di:Cue",
       "di:Reward",
-      "ai:Lick",
       "di:Position_bit 0",
       "di:Position_bit 1",
-      "di:Position_bit 2"
+      "di:Position_bit 2",
+      "di:Position_strobe"
     ]
   }
 }
