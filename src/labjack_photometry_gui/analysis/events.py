@@ -30,6 +30,8 @@ class SessionEvents:
     spout_position: np.ndarray
     first_lick_after_reward_s: np.ndarray = field(default_factory=lambda: np.array([]))
     first_lick_reward_index: np.ndarray = field(default_factory=lambda: np.array([], dtype=int))
+    consumption_lick_s: np.ndarray = field(default_factory=lambda: np.array([]))
+    consumption_reward_index: np.ndarray = field(default_factory=lambda: np.array([], dtype=int))
 
     @property
     def positions(self) -> list[int]:
@@ -103,17 +105,21 @@ def extract_events(
 
     reward_s = reward / fs
     lick_s = lick / fs
+    cue_s = cue / fs
     first_lick_s, first_lick_index = _first_lick_after_reward(reward_s, lick_s, reward_window_s)
+    consumption_s, consumption_index = first_consumption_lick(reward_s, lick_s, cue_s)
 
     return SessionEvents(
         reward_s=reward_s,
         lick_s=lick_s,
-        cue_s=cue / fs,
+        cue_s=cue_s,
         trial_stop_s=trial_stop / fs,
         trial_start_s=strobe / fs,
         spout_position=position,
         first_lick_after_reward_s=first_lick_s,
         first_lick_reward_index=first_lick_index,
+        consumption_lick_s=consumption_s,
+        consumption_reward_index=consumption_index,
     )
 
 
@@ -131,6 +137,43 @@ def _latched_position(session: PhotometrySession, strobe: np.ndarray) -> np.ndar
     for k, line in enumerate(bits):
         code |= line[sample].astype(int) << k
     return code
+
+
+def first_consumption_lick(
+    reward_s: np.ndarray,
+    lick_s: np.ndarray,
+    cue_s: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    """First lick that consumes each reward, bounded by the next trial's cue.
+
+    A fixed post-reward window discards miss trials, where the animal collects
+    late -- often after the next trial has already started. Bounding the search
+    at the next cue instead keeps those consumption licks while still refusing
+    to attribute a lick that follows the next cue, by which point the animal is
+    responding to new information.
+
+    Args:
+        reward_s: Reward onset times.
+        lick_s: Lick onset times.
+        cue_s: Cue onset times, used only as the upper bound.
+
+    Returns:
+        ``(times, reward_index)`` -- consumption lick times and which reward
+        each belongs to. Rewards never collected before the next cue are
+        dropped.
+    """
+    if reward_s.size == 0 or lick_s.size == 0:
+        return np.array([]), np.array([], dtype=int)
+    times: list[float] = []
+    indices: list[int] = []
+    for n, reward_time in enumerate(reward_s):
+        later_cues = cue_s[cue_s > reward_time]
+        bound = float(later_cues[0]) if later_cues.size else float("inf")
+        candidates = lick_s[(lick_s >= reward_time) & (lick_s < bound)]
+        if candidates.size:
+            times.append(float(candidates[0]))
+            indices.append(n)
+    return np.asarray(times), np.asarray(indices, dtype=int)
 
 
 def _first_lick_after_reward(

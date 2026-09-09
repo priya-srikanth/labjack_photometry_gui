@@ -27,7 +27,9 @@ from labjack_photometry_gui.analysis.align import AlignedTraces, align_to_events
 from labjack_photometry_gui.analysis.carrier_qc import CarrierMeasurement, measure_carriers
 from labjack_photometry_gui.analysis.demodulate import (
     delta_f_over_f,
+    dominant_oscillation,
     lockin_envelope,
+    regress_out_oscillation,
     rolling_zscore,
     spectrogram_demodulate,
     suggest_demod_params,
@@ -43,9 +45,11 @@ __all__ = [
     "SessionEvents",
     "align_to_events",
     "delta_f_over_f",
+    "dominant_oscillation",
     "extract_events",
     "lockin_envelope",
     "measure_carriers",
+    "regress_out_oscillation",
     "rolling_zscore",
     "spectrogram_demodulate",
     "suggest_demod_params",

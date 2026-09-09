@@ -23,6 +23,42 @@ import pandas as pd
 from scipy import signal as sp_signal
 
 
+# scipy pads filtfilt with roughly 3 x the filter order, which is far too short
+# for the narrow low-pass filters used here: a 1 Hz filter needs seconds of
+# settling, and 15 samples of padding makes it ring enormously at the edges.
+# Pad by this many filter time constants instead.
+PAD_TIME_CONSTANTS = 10.0
+
+
+def settling_samples(cutoff_hz: float, rate_hz: float) -> int:
+    """Samples a filter needs to settle -- the edge region that is not usable."""
+    return int(round(PAD_TIME_CONSTANTS * rate_hz / max(cutoff_hz, 1e-9)))
+
+
+def _filtfilt(sos: np.ndarray, values: np.ndarray, cutoff_hz: float, rate_hz: float) -> np.ndarray:
+    """Zero-phase filter with padding matched to the filter's settling time."""
+    padlen = int(min(max(settling_samples(cutoff_hz, rate_hz), 3 * sos.shape[0]), values.size - 1))
+    return sp_signal.sosfiltfilt(sos, values, padlen=padlen)
+
+
+def _filtfilt_nan_safe(
+    sos: np.ndarray, values: np.ndarray, cutoff_hz: float, rate_hz: float
+) -> np.ndarray:
+    """Filter a trace containing NaN, restoring the NaN afterwards.
+
+    Padding cannot rescue a filter from NaN, so the gaps are filled with the
+    finite mean, filtered, and masked out again. Only valid where the NaN are
+    the trimmed edges rather than gaps in the middle.
+    """
+    missing = np.isnan(values)
+    if not missing.any():
+        return _filtfilt(sos, values, cutoff_hz, rate_hz)
+    filled = np.where(missing, np.nanmean(values), values)
+    out = _filtfilt(sos, filled, cutoff_hz, rate_hz)
+    out[missing] = np.nan
+    return out
+
+
 @dataclass(frozen=True)
 class DemodParams:
     """Rolling-demodulation window, and what it costs in time/frequency."""
@@ -128,6 +164,7 @@ def lockin_envelope(
     sample_rate_hz: float,
     lowpass_hz: float = 15.0,
     filter_order: int = 4,
+    trim_edges: bool = True,
 ) -> np.ndarray:
     """Quadrature lock-in amplitude at the full acquisition rate.
 
@@ -136,8 +173,16 @@ def lockin_envelope(
     survives. ``lowpass_hz`` must stay below half the spacing to the nearest
     other carrier, or the neighbour folds into this channel.
 
+    Args:
+        trim_edges: Set the filter's settling region at each end to NaN. The
+            edge samples are not a measurement -- odd-extension padding is a
+            poor continuation for a sinusoid, and the first and last few
+            samples can overshoot the true envelope by more than an order of
+            magnitude. Left in place they poison anything fitted downstream.
+
     Returns:
-        Envelope in volts, same length as ``trace``.
+        Envelope in volts, same length as ``trace``, NaN at the edges unless
+        ``trim_edges`` is False.
     """
     if carrier_hz <= 0:
         raise ValueError("carrier_hz must be positive")
@@ -149,9 +194,84 @@ def lockin_envelope(
     t = np.arange(centered.size, dtype=float) / sample_rate_hz
     phase = 2.0 * np.pi * carrier_hz * t
     sos = sp_signal.butter(filter_order, lowpass_hz, btype="low", fs=sample_rate_hz, output="sos")
-    in_phase = sp_signal.sosfiltfilt(sos, centered * np.sin(phase))
-    quadrature = sp_signal.sosfiltfilt(sos, centered * np.cos(phase))
-    return 2.0 * np.hypot(in_phase, quadrature)
+    in_phase = _filtfilt(sos, centered * np.sin(phase), lowpass_hz, sample_rate_hz)
+    quadrature = _filtfilt(sos, centered * np.cos(phase), lowpass_hz, sample_rate_hz)
+    envelope = 2.0 * np.hypot(in_phase, quadrature)
+    if trim_edges:
+        edge = min(settling_samples(lowpass_hz, sample_rate_hz), envelope.size // 2)
+        envelope[:edge] = np.nan
+        envelope[envelope.size - edge :] = np.nan
+    return envelope
+
+
+def dominant_oscillation(
+    values: np.ndarray,
+    rate_hz: float,
+    band_hz: tuple[float, float] = (3.0, 20.0),
+) -> tuple[float, float]:
+    """Find the strongest narrowband component in a demodulated envelope.
+
+    Detector amplifiers run near saturation can break into oscillation, which
+    lands in the envelope as a near-monochromatic line that swamps any
+    fluorescence transient.
+
+    Returns:
+        ``(frequency_hz, prominence)`` where prominence is the peak power over
+        the median power in ``band_hz``. A prominence in the tens or above is
+        an instrumental line, not biology; single digits is an ordinary
+        spectral bump.
+    """
+    data = np.asarray(values, dtype=float)
+    data = data[np.isfinite(data)]
+    if data.size < 16:
+        return float("nan"), 0.0
+    centered = data - data.mean()
+    frequencies, power = sp_signal.welch(
+        centered, fs=rate_hz, nperseg=min(4096, centered.size)
+    )
+    mask = (frequencies > band_hz[0]) & (frequencies < band_hz[1])
+    if not mask.any():
+        return float("nan"), 0.0
+    peak = float(frequencies[mask][np.argmax(power[mask])])
+    prominence = float(power[mask].max() / max(float(np.median(power[mask])), 1e-30))
+    return peak, prominence
+
+
+def regress_out_oscillation(
+    values: np.ndarray,
+    rate_hz: float,
+    center_hz: float,
+    bandwidth_hz: float = 2.0,
+    filter_order: int = 4,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Project a narrowband oscillation out of a trace.
+
+    The trace is mixed down by ``center_hz`` and low-pass filtered at half the
+    bandwidth, giving a complex amplitude that tracks the oscillation as its
+    magnitude and phase drift. That reconstruction is subtracted.
+
+    This removes *all* signal within ``bandwidth_hz`` of the centre, biology
+    included, so keep the bandwidth as narrow as the oscillation's drift
+    allows and report it alongside any result.
+
+    Returns:
+        ``(residual, removed)`` -- the cleaned trace and the component taken
+        out, which should be inspected to confirm it looks like a sinusoid
+        rather than a transient the filter has eaten.
+    """
+    data = np.asarray(values, dtype=float)
+    mean = float(np.nanmean(data))
+    centered = data - mean
+    t = np.arange(centered.size, dtype=float) / rate_hz
+    reference = np.exp(-2j * np.pi * center_hz * t)
+    cutoff = max(bandwidth_hz / 2.0, 1e-6)
+    sos = sp_signal.butter(filter_order, cutoff, btype="low", fs=rate_hz, output="sos")
+    mixed = centered * reference
+    amplitude = _filtfilt_nan_safe(sos, mixed.real, cutoff, rate_hz) + 1j * _filtfilt_nan_safe(
+        sos, mixed.imag, cutoff, rate_hz
+    )
+    removed = 2.0 * np.real(amplitude * np.exp(2j * np.pi * center_hz * t))
+    return centered - removed + mean, removed
 
 
 def rolling_zscore(
