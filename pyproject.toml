@@ -23,11 +23,18 @@ dev = [
 hardware = [
     "labjack-ljm>=1.23",
 ]
+analysis = [
+    "matplotlib>=3.8",
+    "pandas>=2.2",
+    "scipy>=1.11",
+]
 
 [project.scripts]
 photometry-gui = "labjack_photometry_gui.app:main"
 photometry-h5-check = "labjack_photometry_gui.diagnostics:main"
 photometry-demod-check = "labjack_photometry_gui.demodulation:main"
+photometry-carrier-qc = "labjack_photometry_gui.analysis.carrier_qc:main"
+photometry-align = "labjack_photometry_gui.analysis.align_cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
