@@ -34,8 +34,14 @@ from labjack_photometry_gui.analysis.session import PhotometrySession
 # noise floor where the line sits.
 NOISE_BAND_HZ = (1.0, 7.0)
 
-# Samples within this distance of a channel's maximum count as rail-pinned.
+# Samples within this distance of a channel's ceiling count as rail-pinned.
 RAIL_TOLERANCE_V = 0.01
+
+# The ceiling is taken at this percentile rather than at the true maximum: a
+# single transient (a plug event, an ESD spike) can sit volts above the
+# amplifier's actual rail, and anchoring to it hides a channel that is pinned
+# for most of the record.
+RAIL_REFERENCE_PERCENTILE = 99.0
 
 
 @dataclass(frozen=True)
@@ -115,7 +121,8 @@ def measure_carriers(
         signal = block[:, index]
         column = full[:, index]
         top = float(column.max())
-        rail_fraction = float(np.mean(column > top - RAIL_TOLERANCE_V))
+        ceiling = float(np.percentile(column, RAIL_REFERENCE_PERCENTILE))
+        rail_fraction = float(np.mean(column > ceiling - RAIL_TOLERANCE_V))
         median_v = float(np.median(signal))
         light_v = median_v - float(offsets.get(channel, 0.0))
 
