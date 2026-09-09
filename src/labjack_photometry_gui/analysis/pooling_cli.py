@@ -56,6 +56,12 @@ def main() -> int:
              "A trial then contributes to two cells, one per hemisphere.",
     )
     parser.add_argument(
+        "--no-session-traces", action="store_true",
+        help="Plot only the pooled mean and SEM, hiding the per-session means. "
+             "For presentation once the per-session spread has been inspected; "
+             "an error band alone will not reveal a cell carried by one session.",
+    )
+    parser.add_argument(
         "--responsive-only", action="store_true",
         help="Keep only sessions whose peak is time-locked to the event. "
              "Selects on the outcome; biases the pooled amplitude upward.",
@@ -124,6 +130,7 @@ def main() -> int:
 
     figure = figure_pooled_grid(
         cells, rows, columns, time_s, title=title, column_label=column_label,
+        show_sessions=not args.no_session_traces,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     written = []

@@ -74,6 +74,40 @@ File: `PS113_photometry_test_470_565_157-231_2Vamp_20260908_200950.h5`
   565 LED driver modulation input, operating mode, bandwidth, cabling, and
   optical path before interpreting 231-Hz results.
 
+### PS113 brighter-565 dual test
+
+File: `PS113_photometry_test_565-gain10_470-gan100_20260908_210317.h5`
+
+Increasing the 565 light produced a clear 231-Hz optical carrier and resolved
+the prior missing-carrier problem:
+
+| Input | 157-Hz amplitude | 231-Hz amplitude |
+| --- | ---: | ---: |
+| AIN0 / saved `L_470_detect` | 0.397 V | 0.008 V |
+| AIN1 / saved `R_470_detect` | 0.634 V | 0.026 V |
+| AIN4 / saved `L_565_detect` | 0.093 V | 0.676 V |
+| AIN5 / saved `R_565_detect` | 0.160 V | 0.315 V |
+
+AIN4/AIN5 demodulated at 231 Hz showed reward-first-lick changes of
+~0.72/~0.34 rolling-z (20 complete events). The corresponding 157-Hz
+reward-first-lick mean-window changes were small, although lick-frequency
+oscillations were visible after alignment.
+
+The DAC loopbacks rule out meaningful mixing at waveform generation: the
+off-frequency components were only ~13 microvolts on the DAC0 monitor and
+~0.39 millivolts on the DAC1 monitor, versus ~1.48-V intended carriers. The
+much larger off-frequency components in detector inputs therefore arise
+downstream of the DAC loopbacks. Plausible sources are optical cross-detection
+(excitation scatter or emission-filter bleed-through), common optical paths,
+or detector-amplifier coupling. A capped-detector test distinguishes optical
+from downstream electrical coupling.
+
+Single-LED controls support optical cross-detection: the 470-only recording
+placed 157 Hz in both nominal detector types, while the brighter 565-only
+recording placed 231 Hz predominantly in AIN4/AIN5 with much smaller signals
+in AIN0/AIN1. Carrier separation still permits independent demodulation when
+both carrier amplitudes have adequate SNR.
+
 ### Non-modulated controls
 
 - Strong behavior-aligned 565-detector changes required illumination; they
