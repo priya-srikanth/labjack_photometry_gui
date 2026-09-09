@@ -94,6 +94,11 @@ Config loading intentionally does not overwrite the current session prefix. Each
 
 Full CB37/DB37 pinout: [docs/labjack_cb37_pinout.md](docs/labjack_cb37_pinout.md).
 
+For empirical carrier validation and the September 2026 routing discoveries,
+see [docs/empirical_carrier_qc.md](docs/empirical_carrier_qc.md). Run
+`scripts/infer_carriers.py` on each test recording before assigning detector
+channels to modulation frequencies.
+
 | Signal | LabJack channel |
 | --- | --- |
 | Left green detector | `AIN0` |
