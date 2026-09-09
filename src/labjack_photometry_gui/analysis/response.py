@@ -62,23 +62,26 @@ def aligned_delta_f_over_f(
             unmodulated channel's dF/F is biased by wherever its amplifier sits.
 
     Returns:
-        ``(time_s, dff)`` where ``dff`` is ``(n_events, n_timepoints)`` in
-        percent. Events whose baseline is NaN or indistinguishable from zero
-        are dropped.
+        ``(time_s, dff, kept_event_s)`` where ``dff`` is
+        ``(n_events, n_timepoints)`` in percent. Events whose baseline is NaN
+        or indistinguishable from zero are dropped, so ``kept_event_s`` is
+        returned alongside: anything indexed per event, such as spout
+        position, must be filtered by it rather than by the input order.
     """
     aligned = align_to_events(trace, time_s, event_s, pre_s, post_s)
+    empty = (aligned.time_s, np.zeros((0, aligned.time_s.size)), np.zeros(0))
     if aligned.n_events == 0:
-        return aligned.time_s, np.zeros((0, aligned.time_s.size))
+        return empty
 
     mask = (aligned.time_s >= baseline_s[0]) & (aligned.time_s < baseline_s[1])
     baseline = np.nanmean(aligned.values[:, mask], axis=1, keepdims=True)
     denominator = baseline - dark_offset_v
     usable = np.isfinite(denominator).ravel() & (np.abs(denominator).ravel() > MIN_BASELINE_V)
     if not usable.any():
-        return aligned.time_s, np.zeros((0, aligned.time_s.size))
+        return empty
     values = aligned.values[usable]
     dff = 100.0 * (values - baseline[usable]) / denominator[usable]
-    return aligned.time_s, dff
+    return aligned.time_s, dff, aligned.event_s[usable]
 
 
 def aligned_delta_f(
@@ -94,14 +97,22 @@ def aligned_delta_f(
     The only fair way to put a dark control on the same axes as a real signal:
     with no light there is no F to divide by, so dF/F is undefined there while
     absolute delta-F stays interpretable in every condition.
+
+    Returns:
+        ``(time_s, delta_f_mv, kept_event_s)``, matching
+        :func:`aligned_delta_f_over_f`.
     """
     aligned = align_to_events(trace, time_s, event_s, pre_s, post_s)
     if aligned.n_events == 0:
-        return aligned.time_s, np.zeros((0, aligned.time_s.size))
+        return aligned.time_s, np.zeros((0, aligned.time_s.size)), np.zeros(0)
     mask = (aligned.time_s >= baseline_s[0]) & (aligned.time_s < baseline_s[1])
     baseline = np.nanmean(aligned.values[:, mask], axis=1, keepdims=True)
     usable = np.isfinite(baseline).ravel()
-    return aligned.time_s, 1000.0 * (aligned.values[usable] - baseline[usable])
+    return (
+        aligned.time_s,
+        1000.0 * (aligned.values[usable] - baseline[usable]),
+        aligned.event_s[usable],
+    )
 
 
 def peak_response(

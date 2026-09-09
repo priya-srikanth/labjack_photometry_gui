@@ -36,6 +36,7 @@ photometry-demod-check = "labjack_photometry_gui.demodulation:main"
 photometry-carrier-qc = "labjack_photometry_gui.analysis.carrier_qc:main"
 photometry-align = "labjack_photometry_gui.analysis.align_cli:main"
 photometry-pool = "labjack_photometry_gui.analysis.pooling_cli:main"
+photometry-summary = "labjack_photometry_gui.analysis.summary_cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

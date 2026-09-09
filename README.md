@@ -169,13 +169,19 @@ its extras with `pip install -e .[analysis]` (matplotlib, pandas, scipy).
 | `response` | Event-aligned dF/F and peak magnitude. dF/F for comparing conditions, z-scores for detection. |
 | `quality` | Build a channel's trace whether or not it was modulated, and decide on quality grounds alone whether it is usable. |
 | `pooling` | Combine sessions and animals, averaging per session before across sessions. |
+| `summary` | Compare one event-aligned response across excitation conditions, mixing modulated and constant-illumination recordings. |
 | `plots` | Event-aligned, carrier time-course and pooled-grid figures. |
 
 ```powershell
 .\.venv\Scripts\photometry-carrier-qc.exe C:\data\session.h5
 .\.venv\Scripts\photometry-align.exe C:\data\session.h5 --carrier 231 --channels L_565_detect R_565_detect
 .\.venv\Scripts\photometry-pool.exe "C:\data\PS1*.h5" --output pooled.png
+.\.venv\Scripts\photometry-summary.exe --condition "565 nm 231 Hz=C:\data\sess.h5@231" --dark C:\data\dark.h5 --output summary.png
 ```
+
+`photometry-summary` takes repeatable `--condition LABEL=PATH[@CARRIER]`
+arguments; omit `@CARRIER` for constant illumination. Pass `--dark` so the
+amplifier offsets that unmodulated dF/F needs are measured rather than assumed.
 
 Run carrier QC before interpreting any demodulated trace. Conventions and the
 mistakes that motivated them: [docs/analysis_decisions.md](docs/analysis_decisions.md).

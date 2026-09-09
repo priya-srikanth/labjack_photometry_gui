@@ -70,7 +70,17 @@ shifts every alignment.
   response is shrunk. z-score is a detection statistic, not an effect size.
 - **dF/F is undefined when there is no light.** The dark control has a
   light-driven F of 0.0006 V; its dF/F is division by zero and plotting it
-  produces nonsense. Compare a dark control in absolute dF (mV) instead.
+  produces nonsense. Compare a dark control in absolute dF (mV) instead
+  (`aligned_delta_f`).
+- **Subtract the amplifier offset before forming a ratio, for unmodulated
+  recordings only.** A demodulated envelope's amplitude is already the
+  light-driven term, but a low-passed voltage still sits on whatever the
+  amplifier reads in the dark -- -50 to -96 mV on this rig. `analysis.summary`
+  measures those offsets from the dark control rather than assuming them.
+- **Anything indexed per event must follow the events that survived.** dF/F
+  drops events whose baseline is NaN or indistinguishable from zero, so
+  `aligned_delta_f_over_f` returns the retained event times; filter spout
+  position by those, not by the input order.
 - **Rolling z-score** for pooling across sessions recorded at different gains
   and LED powers. Always read it next to raw volts and carrier amplitude: it
   inflates near-flat traces into something that looks like signal.
@@ -147,6 +157,7 @@ established that the 565 channels were seeing only 470 nm light.
 .\.venv\Scripts\photometry-carrier-qc.exe C:\data\session.h5
 .\.venv\Scripts\photometry-align.exe C:\data\session.h5 --carrier 231 --channels L_565_detect R_565_detect
 .\.venv\Scripts\photometry-pool.exe "C:\data\PS1*.h5" --output pooled.png
+.\.venv\Scripts\photometry-summary.exe --condition "LABEL=C:\data\sess.h5@231" --dark C:\data\dark.h5 --output summary.png
 ```
 
 `python -m labjack_photometry_gui.analysis.timecourse <file> --window-s 2`
