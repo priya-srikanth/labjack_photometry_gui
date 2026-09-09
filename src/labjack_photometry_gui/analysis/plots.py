@@ -117,7 +117,7 @@ def plot_trial_heatmap(
 
 
 def figure_carrier_timecourse(
-    frame: "pd.DataFrame",
+    frame: pd.DataFrame,
     channels: list[str],
     carriers_hz: list[float],
     title: str,

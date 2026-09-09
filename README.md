@@ -129,6 +129,9 @@ The current photometry config uses the lick detector board output on `FIO4` as a
 - Use `Trailing` stream-out for normal nonzero DAC carriers.
 - Leave `Stream debug` off for long recordings; enable it only for LabJack stream troubleshooting.
 - Analog lick on `AIN6` is disabled by default because it can contaminate detector channels on this rig. Use the lick detector board output on `FIO4` instead.
+- Keep carrier amplitude at or below `1.5 V` on a `2.5 V` offset. At `2.0 V` the DAC command flat-tops near `4.5 V` and generates harmonics.
+- Choose carriers away from 60 Hz harmonics. A lock-in at `f` converts a line at `f + d` into an envelope ripple at `d`, so a `231 Hz` carrier turns 60 Hz x 4 = `240 Hz` mains pickup into a 9 Hz oscillation sitting on top of the signal. `211 Hz` or `271 Hz` keep the beat outside a 4 Hz signal band.
+- Check detector gain before recording. A 565 channel run at gain 100 saturated at ~5.94 V for 81% of a session while still reporting a plausible carrier.
 
 ## Recording Files
 
@@ -150,11 +153,37 @@ Quick recording checks:
 .\.venv\Scripts\photometry-demod-check.exe data\your_file.h5
 ```
 
+## Offline Analysis
+
+`src/labjack_photometry_gui/analysis/` reads recorded HDF5 files back. Install
+its extras with `pip install -e .[analysis]` (matplotlib, pandas, scipy).
+
+| Module | Purpose |
+| --- | --- |
+| `session` | Read-only session access. Opens with `locking=False`, so a file the GUI still holds open can be inspected mid-recording. |
+| `carrier_qc` | Carrier amplitude, SNR, modulation depth and rail-pinning for every input at every carrier. |
+| `timecourse` | The same measurements in consecutive short windows, so mid-session changes appear as steps. |
+| `demodulate` | Spectrogram demodulation matching the `nta` pipeline, quadrature lock-in, oscillation removal, rolling z-score, dF/F. |
+| `events` | Digital lines to event times, trials and spout positions. |
+| `align` | Event-aligned matrices. |
+| `plots` | Event-aligned and carrier time-course figures. |
+
+```powershell
+.\.venv\Scripts\photometry-carrier-qc.exe C:\data\session.h5
+.\.venv\Scripts\photometry-align.exe C:\data\session.h5 --carrier 231 --channels L_565_detect R_565_detect
+```
+
+Run carrier QC before interpreting any demodulated trace. Conventions and the
+mistakes that motivated them: [docs/analysis_decisions.md](docs/analysis_decisions.md).
+
 ## Useful Docs
 
 - [Setup on a new computer](docs/setup.md)
 - [LabJack T7 + CB37 pinout](docs/labjack_cb37_pinout.md)
 - [Design notes](docs/design.md)
+- [Empirical carrier QC and routing](docs/empirical_carrier_qc.md)
+- [Analysis decisions and pitfalls](docs/analysis_decisions.md)
+- [Session notes, 8 Sept 2026](docs/session_notes_20260908.md)
 
 ## Development
 

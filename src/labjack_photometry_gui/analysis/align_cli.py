@@ -113,7 +113,7 @@ def main() -> int:
             f"positions {events.positions}"
         )
 
-        window_samples = max(3, int(round(args.window_s * params.output_rate_hz)))
+        window_samples = max(3, round(args.window_s * params.output_rate_hz))
         traces: dict[str, tuple[np.ndarray, np.ndarray]] = {}
         for channel in args.channels:
             envelope, times = spectrogram_demodulate(

@@ -56,7 +56,7 @@ def carrier_timecourse(
     indices = [session.analog_names.index(name) for name in names]
 
     fs = session.sample_rate_hz
-    step = int(round(window_s * fs))
+    step = round(window_s * fs)
     rows: list[dict[str, float | str]] = []
     for start in range(0, session.n_samples - step + 1, step):
         stop = start + step
@@ -102,8 +102,8 @@ def coupling_timecourse(
         can be told apart from genuine independence.
     """
     fs = session.sample_rate_hz
-    sub = int(round(sub_window_s * fs))
-    per_window = max(4, int(round(window_s / sub_window_s)))
+    sub = round(sub_window_s * fs)
+    per_window = max(4, round(window_s / sub_window_s))
     index_a = session.analog_names.index(channel_a)
     index_b = session.analog_names.index(channel_b)
 

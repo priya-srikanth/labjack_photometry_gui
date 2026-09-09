@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Self
 
 import h5py
 import numpy as np
@@ -53,7 +53,7 @@ class PhotometrySession:
         self._analog_names = _string_dataset(self._handle["analog_channel_names"])
         self._digital_names = _string_dataset(self._handle["digital_channel_names"])
 
-    def __enter__(self) -> PhotometrySession:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *exc_info: object) -> None:
@@ -141,7 +141,7 @@ class PhotometrySession:
         artefacts, so steady-state measurements should come from the middle.
         """
         total = self.n_samples
-        count = min(total, int(round(seconds * self.sample_rate_hz)))
+        count = min(total, round(seconds * self.sample_rate_hz))
         start = max(0, total // 2 - count // 2)
         return start, start + count
 

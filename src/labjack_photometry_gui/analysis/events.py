@@ -84,7 +84,7 @@ def extract_events(
         Event times in seconds on the session clock.
     """
     fs = session.sample_rate_hz
-    guard = int(round(EDGE_GUARD_S * fs))
+    guard = round(EDGE_GUARD_S * fs)
 
     def onsets(name: str) -> np.ndarray:
         edges = onset_edges(session.digital(name))

@@ -129,8 +129,8 @@ def measure_carriers(
         frequencies, power = welch(
             signal,
             fs=session.sample_rate_hz,
-            nperseg=min(int(round(10 * session.sample_rate_hz)), signal.size),
-            noverlap=min(int(round(5 * session.sample_rate_hz)), signal.size // 3),
+            nperseg=min(round(10 * session.sample_rate_hz), signal.size),
+            noverlap=min(round(5 * session.sample_rate_hz), signal.size // 3),
         )
         for carrier in carriers:
             amplitude = carrier_amplitude(signal, time_s, carrier)

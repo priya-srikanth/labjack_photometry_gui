@@ -16,12 +16,12 @@ afterwards with :func:`delta_f_over_f` or :func:`rolling_zscore`.
 
 from __future__ import annotations
 
+import itertools
 from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
 from scipy import signal as sp_signal
-
 
 # scipy pads filtfilt with roughly 3 x the filter order, which is far too short
 # for the narrow low-pass filters used here: a 1 Hz filter needs seconds of
@@ -32,7 +32,7 @@ PAD_TIME_CONSTANTS = 10.0
 
 def settling_samples(cutoff_hz: float, rate_hz: float) -> int:
     """Samples a filter needs to settle -- the edge region that is not usable."""
-    return int(round(PAD_TIME_CONSTANTS * rate_hz / max(cutoff_hz, 1e-9)))
+    return round(PAD_TIME_CONSTANTS * rate_hz / max(cutoff_hz, 1e-9))
 
 
 def _filtfilt(sos: np.ndarray, values: np.ndarray, cutoff_hz: float, rate_hz: float) -> np.ndarray:
@@ -111,12 +111,12 @@ def suggest_demod_params(
         pair by at least ``min_carrier_separation_bins``.
     """
     ordered = sorted(float(item) for item in carriers_hz)
-    gaps = [b - a for a, b in zip(ordered, ordered[1:])] or [sample_rate_hz / 4]
+    gaps = [b - a for a, b in itertools.pairwise(ordered)] or [sample_rate_hz / 4]
     closest = min(gaps)
 
     # resolution = fs / nperseg, and we need closest >= bins * resolution
     nperseg = int(np.ceil(min_carrier_separation_bins * sample_rate_hz / closest))
-    step = max(1, int(round(sample_rate_hz / target_output_hz)))
+    step = max(1, round(sample_rate_hz / target_output_hz))
     nperseg = max(nperseg, step * 2)
     return DemodParams(nperseg=nperseg, noverlap=nperseg - step, sample_rate_hz=sample_rate_hz)
 

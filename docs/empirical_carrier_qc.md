@@ -9,7 +9,8 @@ substitute for physically tracing the rig after rewiring.
 The GUI channel name records the configured label. It does not prove which
 detector, hemisphere, LED, or amplifier is physically attached. Before
 demodulation, measure the carrier spectrum in every detector input with
-`scripts/infer_carriers.py`.
+`photometry-carrier-qc` (or the older `scripts/infer_carriers.py`), which also
+reports modulation depth and rail-pinning.
 
 The confirmed DAC monitor loopbacks are:
 
@@ -34,6 +35,16 @@ File: `PS111_photometry_test_470_norm_cable_6_20260908_174159.h5`
 - It was not detectable in AIN0/AIN1.
 - Therefore the original analysis pairing AIN0/AIN1 only with 211 Hz missed
   the recorded 470-modulated optical component.
+
+**Correction (later on 2026-09-08).** The dB figures replicate exactly (78.6
+and 54.7), but the carrier amplitudes are 35 mV and 1.9 mV, on channels whose
+DC sat at -0.207 V and -0.335 V. Those detectors were dark or disconnected; the
+SNR was high only because the local noise floor was low. There was no
+meaningful 470-modulated optical component in that file, and the conclusion
+drawn from it does not hold. This is the failure mode the closing note of this
+document warns about: read carrier amplitude in volts and the channel DC level
+alongside any dB figure. More broadly, **no PS111 or PS112 recording contains a
+usable carrier at all** -- see [session_notes_20260908.md](session_notes_20260908.md).
 
 ### PS112 dual-wavelength test
 

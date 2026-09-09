@@ -82,8 +82,8 @@ def align_to_events(
         return AlignedTraces(empty, np.zeros(0), np.zeros(0), np.zeros(0, dtype=int))
 
     rate = 1.0 / float(np.median(np.diff(time_s)))
-    before = int(round(pre_s * rate))
-    after = int(round(post_s * rate))
+    before = round(pre_s * rate)
+    after = round(post_s * rate)
     offsets = np.arange(-before, after + 1)
     axis = offsets / rate
 
