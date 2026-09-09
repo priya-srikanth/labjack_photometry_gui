@@ -126,12 +126,9 @@ def figure_pooled_grid(
     title: str,
     ylabel: str = "z-score",
     column_label: str = "pos",
+    show_sessions: bool = True,
 ) -> Figure:
     """Grid of pooled responses: one row per channel, one column per group.
-
-    Each panel draws the individual session means in grey behind the pooled
-    mean, so a cell carried by one outlying session is visibly that rather than
-    hidden inside an error band.
 
     Args:
         cells: ``(row label, column value) -> PooledCell`` or None where a
@@ -139,6 +136,11 @@ def figure_pooled_grid(
         row_labels: Row order, typically detector channels.
         columns: Column order, typically spout positions.
         time_s: Shared time axis, zero at the event.
+        show_sessions: Draw each session's mean in grey behind the pooled
+            mean. Keep this on while reading a result: it is what reveals a
+            cell carried by one outlying session, which an error band alone
+            hides. Turn it off only for a presentation figure, once the
+            per-session spread has already been inspected.
     """
     figure, axes = plt.subplots(
         len(row_labels), len(columns), figsize=(2.85 * len(columns), 3.1 * len(row_labels)),
@@ -154,8 +156,9 @@ def figure_pooled_grid(
                 ax.text(0.5, 0.5, "no data", ha="center", va="center",
                         transform=ax.transAxes, fontsize=9, color="0.5")
                 continue
-            for session_mean in cell.session_means:
-                ax.plot(time_s, session_mean, color="0.75", lw=0.8, zorder=1)
+            if show_sessions:
+                for session_mean in cell.session_means:
+                    ax.plot(time_s, session_mean, color="0.75", lw=0.8, zorder=1)
             ax.plot(time_s, cell.mean, color=color, lw=2.2, zorder=3)
             if cell.n_sessions > 1:
                 ax.fill_between(time_s, cell.mean - cell.sem, cell.mean + cell.sem,
