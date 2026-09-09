@@ -166,11 +166,15 @@ its extras with `pip install -e .[analysis]` (matplotlib, pandas, scipy).
 | `demodulate` | Spectrogram demodulation matching the `nta` pipeline, quadrature lock-in, oscillation removal, rolling z-score, dF/F. |
 | `events` | Digital lines to event times, trials and spout positions. |
 | `align` | Event-aligned matrices. |
-| `plots` | Event-aligned and carrier time-course figures. |
+| `response` | Event-aligned dF/F and peak magnitude. dF/F for comparing conditions, z-scores for detection. |
+| `quality` | Build a channel's trace whether or not it was modulated, and decide on quality grounds alone whether it is usable. |
+| `pooling` | Combine sessions and animals, averaging per session before across sessions. |
+| `plots` | Event-aligned, carrier time-course and pooled-grid figures. |
 
 ```powershell
 .\.venv\Scripts\photometry-carrier-qc.exe C:\data\session.h5
 .\.venv\Scripts\photometry-align.exe C:\data\session.h5 --carrier 231 --channels L_565_detect R_565_detect
+.\.venv\Scripts\photometry-pool.exe "C:\data\PS1*.h5" --output pooled.png
 ```
 
 Run carrier QC before interpreting any demodulated trace. Conventions and the

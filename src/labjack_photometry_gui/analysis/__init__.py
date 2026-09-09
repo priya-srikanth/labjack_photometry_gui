@@ -17,8 +17,18 @@ be reused on its own:
     Turn the digital lines into event times, trials and spout positions.
 ``align``
     Cut event-aligned matrices out of a continuous trace.
+``response``
+    Event-aligned dF/F and peak magnitude. dF/F for comparing conditions,
+    z-scores for detection and pooling.
+``quality``
+    Build a channel's trace whether or not the recording was modulated, and
+    decide on quality grounds alone whether it is usable.
+``pooling``
+    Combine sessions and animals, averaging per session before across
+    sessions. Keeps quality-based inclusion separate from outcome-based
+    selection.
 ``plots``
-    Event-aligned figures.
+    Event-aligned, carrier time-course and pooled-grid figures.
 """
 
 from __future__ import annotations
@@ -35,22 +45,51 @@ from labjack_photometry_gui.analysis.demodulate import (
     suggest_demod_params,
 )
 from labjack_photometry_gui.analysis.events import SessionEvents, extract_events
+from labjack_photometry_gui.analysis.pooling import (
+    PooledCell,
+    SessionResponse,
+    collect_responses,
+    pool_by_animal,
+    pool_by_position,
+    select_responsive,
+)
+from labjack_photometry_gui.analysis.quality import ChannelSignal, channel_signal
+from labjack_photometry_gui.analysis.response import (
+    PeakResponse,
+    aligned_delta_f,
+    aligned_delta_f_over_f,
+    baseline_noise,
+    peak_response,
+)
 from labjack_photometry_gui.analysis.session import Modulation, PhotometrySession
 
 __all__ = [
     "AlignedTraces",
     "CarrierMeasurement",
+    "ChannelSignal",
     "Modulation",
+    "PeakResponse",
     "PhotometrySession",
+    "PooledCell",
     "SessionEvents",
+    "SessionResponse",
     "align_to_events",
+    "aligned_delta_f",
+    "aligned_delta_f_over_f",
+    "baseline_noise",
+    "channel_signal",
+    "collect_responses",
     "delta_f_over_f",
     "dominant_oscillation",
     "extract_events",
     "lockin_envelope",
     "measure_carriers",
+    "peak_response",
+    "pool_by_animal",
+    "pool_by_position",
     "regress_out_oscillation",
     "rolling_zscore",
+    "select_responsive",
     "spectrogram_demodulate",
     "suggest_demod_params",
 ]

@@ -77,16 +77,32 @@ shifts every alignment.
 
 ## Pooling across sessions
 
-- Average **per session first, then across sessions**. A 65-minute session with
-  164 events must not outweigh a 5-minute one; n in the statistics is sessions,
-  not trials.
+Implemented in `analysis.pooling`, driven by `photometry-pool`.
+
+- Average **per session first, then across sessions** (`pool_by_position`). A
+  65-minute session with 164 events must not outweigh a 5-minute one; n in the
+  statistics is sessions, not trials.
 - Decide inclusion on **signal quality only** -- light level, carrier SNR,
-  artefact prominence, event count -- never on whether a response is present.
-  Selecting on the outcome and measuring in the same trials inflates the
-  estimate. Where an outcome-based selection is used deliberately for a
-  preliminary figure, say so and treat the amplitude as descriptive.
+  artefact prominence, event count (`collect_responses`, gates in
+  `analysis.quality`). Never on whether a response is present.
+- Outcome-based selection lives in a **separate function**
+  (`select_responsive`) so the distinction cannot be lost by accident. It keeps
+  sessions whose peak falls within 0-0.5 s of the event and exceeds 1.0 z.
+  Latency is the discriminating feature: on 2026-09-08 every responsive session
+  peaked at 0.13-0.19 s while every other one peaked anywhere between -1.68 and
+  +2.35 s. Using it biases the pooled amplitude upward, because a session is
+  kept for having a large peak and that peak then enters the mean. The shape
+  and timing survive; the magnitude does not.
 - Sessions within an animal are not independent. Treating k sessions as k
-  degrees of freedom is pseudoreplication.
+  degrees of freedom is pseudoreplication, so `pool_by_animal` averages each
+  animal's sessions first. Expect wider error bars -- that is the point.
+- **Unmodulated sessions can still contribute.** A recording whose LEDs never
+  followed their modulation command has no carrier, but its raw voltage still
+  carries the signal, and `channel_signal` falls back to the 0 Hz path
+  automatically when no carrier clears `min_carrier_snr_db`. That is what makes
+  a mixed-mode comparison possible. It is also the weakest link in any pooled
+  result: an unmodulated trace rejects neither ambient light nor movement, so
+  it needs its own dark control before it can be trusted.
 
 ## Pitfalls found the hard way
 
@@ -130,7 +146,12 @@ established that the 565 channels were seeing only 470 nm light.
 ```powershell
 .\.venv\Scripts\photometry-carrier-qc.exe C:\data\session.h5
 .\.venv\Scripts\photometry-align.exe C:\data\session.h5 --carrier 231 --channels L_565_detect R_565_detect
+.\.venv\Scripts\photometry-pool.exe "C:\data\PS1*.h5" --output pooled.png
 ```
 
 `python -m labjack_photometry_gui.analysis.timecourse <file> --window-s 2`
 prints the per-window table used to spot mid-session changes.
+
+`photometry-pool` prints every inclusion and exclusion decision with its
+reason, then the pooled peaks at both session and animal level. Add
+`--responsive-only` for the outcome-selected preliminary version.

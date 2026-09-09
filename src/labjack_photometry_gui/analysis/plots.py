@@ -21,6 +21,8 @@ from labjack_photometry_gui.analysis.align import AlignedTraces
 if TYPE_CHECKING:
     import pandas as pd
 
+    from labjack_photometry_gui.analysis.pooling import PooledCell
+
 POSITION_COLORMAP = "viridis"
 EVENT_LINE_STYLE = {"color": "0.25", "linewidth": 1.0, "linestyle": "--", "zorder": 1}
 GRID_STYLE = {"color": "0.9", "linewidth": 0.6}
@@ -114,6 +116,67 @@ def plot_trial_heatmap(
         ax.axhline(edge, color="0.15", linewidth=0.8)
     ax.set_ylabel("event (grouped by position)")
     plt.colorbar(image, ax=ax, label=cbar_label, pad=0.02, fraction=0.046)
+
+
+def figure_pooled_grid(
+    cells: dict[tuple[str, int], PooledCell | None],
+    row_labels: list[str],
+    columns: list[int],
+    time_s: np.ndarray,
+    title: str,
+    ylabel: str = "z-score",
+    column_label: str = "pos",
+) -> Figure:
+    """Grid of pooled responses: one row per channel, one column per group.
+
+    Each panel draws the individual session means in grey behind the pooled
+    mean, so a cell carried by one outlying session is visibly that rather than
+    hidden inside an error band.
+
+    Args:
+        cells: ``(row label, column value) -> PooledCell`` or None where a
+            grouping has no data.
+        row_labels: Row order, typically detector channels.
+        columns: Column order, typically spout positions.
+        time_s: Shared time axis, zero at the event.
+    """
+    figure, axes = plt.subplots(
+        len(row_labels), len(columns), figsize=(2.85 * len(columns), 3.1 * len(row_labels)),
+        squeeze=False, sharex=True, sharey=True, layout="constrained",
+    )
+    colors = ["#1f6aa8", "#b3261e", "#0f7a5a", "#7a4fa3"]
+    for row, label in enumerate(row_labels):
+        color = colors[row % len(colors)]
+        for col, column in enumerate(columns):
+            ax = axes[row][col]
+            cell = cells.get((label, column))
+            if cell is None:
+                ax.text(0.5, 0.5, "no data", ha="center", va="center",
+                        transform=ax.transAxes, fontsize=9, color="0.5")
+                continue
+            for session_mean in cell.session_means:
+                ax.plot(time_s, session_mean, color="0.75", lw=0.8, zorder=1)
+            ax.plot(time_s, cell.mean, color=color, lw=2.2, zorder=3)
+            if cell.n_sessions > 1:
+                ax.fill_between(time_s, cell.mean - cell.sem, cell.mean + cell.sem,
+                                color=color, alpha=0.22, lw=0, zorder=2)
+            ax.axvline(0.0, **EVENT_LINE_STYLE)
+            ax.axhline(0.0, color="0.85", linewidth=0.8, zorder=0)
+            ax.set_title(
+                f"{column_label} {column}\n{cell.n_sessions} sess, "
+                f"{cell.n_animals} animal{'s' if cell.n_animals > 1 else ''}, "
+                f"{cell.n_trials} trials",
+                fontsize=9,
+            )
+            ax.grid(True, **GRID_STYLE)
+            ax.set_axisbelow(True)
+            for side in ("top", "right"):
+                ax.spines[side].set_visible(False)
+        axes[row][0].set_ylabel(f"{label}\n{ylabel}")
+    for ax in axes[-1]:
+        ax.set_xlabel("time from event (s)")
+    figure.suptitle(title, x=0.006, ha="left", fontsize=13, va="top")
+    return figure
 
 
 def figure_carrier_timecourse(
