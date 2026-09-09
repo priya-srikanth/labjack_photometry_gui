@@ -28,6 +28,7 @@ import numpy as np
 from labjack_photometry_gui.analysis.align import align_to_events
 from labjack_photometry_gui.analysis.demodulate import rolling_zscore
 from labjack_photometry_gui.analysis.events import SessionEvents, extract_events
+from labjack_photometry_gui.analysis.geometry import hemisphere_of, relative_labels
 from labjack_photometry_gui.analysis.quality import (
     DEFAULT_MAX_OSCILLATION,
     DEFAULT_MIN_CARRIER_SNR_DB,
@@ -251,6 +252,50 @@ def pool_by_position(
         n_sessions=stack.shape[0],
         n_animals=len(animals),
         n_trials=trials,
+    )
+
+
+def pool_by_relative_position(
+    responses: Sequence[SessionResponse],
+    laterality: str,
+    distance: str,
+    min_trials_per_session: int = 3,
+) -> PooledCell | None:
+    """Pool one ipsi/mid/contra x near/far cell, combining both hemispheres.
+
+    Each session x channel is recoded against its own fibre's hemisphere, so a
+    left-spout trial lands in ``ipsi`` when read from the left hemisphere and
+    ``contra`` when read from the right. The same trial therefore contributes
+    to two different cells -- once per hemisphere -- which is the point of the
+    recoding, but means trial counts here are not independent observations.
+    """
+    target = f"{distance} {laterality}"
+    session_means: list[np.ndarray] = []
+    animals: set[str] = set()
+    trials = 0
+    for response in responses:
+        hemisphere = hemisphere_of(response.channel)
+        if hemisphere is None:
+            continue
+        labels = np.asarray(relative_labels(response.position, hemisphere))
+        selected = response.values[labels == target]
+        if selected.shape[0] < min_trials_per_session:
+            continue
+        session_means.append(np.nanmean(selected, axis=0))
+        animals.add(response.animal)
+        trials += int(selected.shape[0])
+    if not session_means:
+        return None
+    stack = np.vstack(session_means)
+    mean = np.nanmean(stack, axis=0)
+    sem = (
+        np.nanstd(stack, axis=0, ddof=1) / np.sqrt(stack.shape[0])
+        if stack.shape[0] > 1
+        else np.full_like(mean, np.nan)
+    )
+    return PooledCell(
+        mean=mean, sem=sem, session_means=stack, n_sessions=stack.shape[0],
+        n_animals=len(animals), n_trials=trials,
     )
 
 

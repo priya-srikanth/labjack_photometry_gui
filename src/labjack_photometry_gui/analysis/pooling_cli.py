@@ -20,6 +20,7 @@ from pathlib import Path
 
 from matplotlib import pyplot as plt
 
+from labjack_photometry_gui.analysis.geometry import DISTANCES, LATERALITIES
 from labjack_photometry_gui.analysis.plots import figure_pooled_grid
 from labjack_photometry_gui.analysis.pooling import (
     DEFAULT_RESPONSE_THRESHOLD_Z,
@@ -27,6 +28,7 @@ from labjack_photometry_gui.analysis.pooling import (
     collect_responses,
     pool_by_animal,
     pool_by_position,
+    pool_by_relative_position,
     select_responsive,
 )
 from labjack_photometry_gui.analysis.response import peak_response
@@ -48,12 +50,22 @@ def main() -> int:
     parser.add_argument("--post", type=float, default=5.0)
     parser.add_argument("--min-events", type=int, default=15)
     parser.add_argument(
+        "--relative-position", action="store_true",
+        help="Recode spout position as ipsi/mid/contra x near/far relative to each "
+             "channel's own hemisphere, combining both hemispheres into one grid. "
+             "A trial then contributes to two cells, one per hemisphere.",
+    )
+    parser.add_argument(
         "--responsive-only", action="store_true",
         help="Keep only sessions whose peak is time-locked to the event. "
              "Selects on the outcome; biases the pooled amplitude upward.",
     )
     parser.add_argument("--output", type=Path, default=Path("pooled.png"))
     parser.add_argument("--dpi", type=int, default=200)
+    parser.add_argument(
+        "--formats", nargs="+", default=["png", "pdf"],
+        help="Extra formats to write alongside --output, e.g. pdf svg",
+    )
     args = parser.parse_args()
 
     files = sorted({path for pattern in args.paths for path in _expand(pattern)})
@@ -86,31 +98,52 @@ def main() -> int:
               f"{response.file[:44]:<44} n={response.n_events}")
 
     time_s = responses[0].time_s
-    cells = {}
-    for channel in args.channels:
-        subset = [r for r in responses if r.channel == channel]
-        for position in args.positions:
-            cells[(channel, position)] = pool_by_position(subset, position)
+    suffix = " - responsive sessions only" if args.responsive_only else ""
+
+    if args.relative_position:
+        # Rows are distance, columns are laterality relative to each fibre, so
+        # both hemispheres contribute to every cell.
+        cells = {
+            (distance, laterality): pool_by_relative_position(
+                responses, laterality, distance
+            )
+            for distance in DISTANCES
+            for laterality in LATERALITIES
+        }
+        rows, columns, column_label = list(DISTANCES), list(LATERALITIES), ""
+        title = f"pooled response aligned to {args.event}, by spout position " \
+                f"relative to fibre{suffix}"
+    else:
+        cells = {}
+        for channel in args.channels:
+            subset = [r for r in responses if r.channel == channel]
+            for position in args.positions:
+                cells[(channel, position)] = pool_by_position(subset, position)
+        rows, columns, column_label = list(args.channels), list(args.positions), "pos"
+        title = f"pooled response aligned to {args.event}{suffix}"
 
     figure = figure_pooled_grid(
-        cells, args.channels, args.positions, time_s,
-        title=(f"pooled response aligned to {args.event}"
-               + (" - responsive sessions only" if args.responsive_only else "")),
+        cells, rows, columns, time_s, title=title, column_label=column_label,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    figure.savefig(args.output, dpi=args.dpi, bbox_inches="tight")
-    figure.savefig(args.output.with_suffix(".pdf"), bbox_inches="tight")
+    written = []
+    for suffix in dict.fromkeys([args.output.suffix.lstrip(".") or "png", *args.formats]):
+        target = args.output.with_suffix(f".{suffix}")
+        figure.savefig(target, dpi=args.dpi, bbox_inches="tight")
+        written.append(target)
     plt.close(figure)
-    print(f"\nwrote {args.output} and {args.output.with_suffix('.pdf')}")
+    print("\nwrote " + ", ".join(str(path) for path in written))
 
-    print("\npeak z by position (mean +- SEM across sessions):")
-    for channel in args.channels:
-        for position in args.positions:
-            cell = cells[(channel, position)]
+    print("\npeak z (mean +- SEM across sessions):")
+    for row in rows:
+        for column in columns:
+            cell = cells.get((row, column))
             if cell is None:
                 continue
             peak = peak_response(time_s, cell.session_means, unit="z")
-            print(f"  {channel:<15} pos{position}: {peak.value:5.2f} +- {peak.sem:4.2f} "
+            heading = f"{row} {column}".strip() if column_label == "" else \
+                f"{row:<15} pos{column}"
+            print(f"  {heading:<22} {peak.value:5.2f} +- {peak.sem:4.2f} "
                   f"at {peak.latency_s:5.2f} s ({cell.n_sessions} sessions, "
                   f"{cell.n_trials} trials)")
 

@@ -119,9 +119,9 @@ def plot_trial_heatmap(
 
 
 def figure_pooled_grid(
-    cells: dict[tuple[str, int], PooledCell | None],
+    cells: dict[tuple[str, object], PooledCell | None],
     row_labels: list[str],
-    columns: list[int],
+    columns: list[object],
     time_s: np.ndarray,
     title: str,
     ylabel: str = "z-score",
@@ -162,8 +162,9 @@ def figure_pooled_grid(
                                 color=color, alpha=0.22, lw=0, zorder=2)
             ax.axvline(0.0, **EVENT_LINE_STYLE)
             ax.axhline(0.0, color="0.85", linewidth=0.8, zorder=0)
+            heading = f"{column_label} {column}".strip()
             ax.set_title(
-                f"{column_label} {column}\n{cell.n_sessions} sess, "
+                f"{heading}\n{cell.n_sessions} sess, "
                 f"{cell.n_animals} animal{'s' if cell.n_animals > 1 else ''}, "
                 f"{cell.n_trials} trials",
                 fontsize=9,
