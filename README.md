@@ -194,6 +194,7 @@ mistakes that motivated them: [docs/analysis_decisions.md](docs/analysis_decisio
 - [Empirical carrier QC and routing](docs/empirical_carrier_qc.md)
 - [Analysis decisions and pitfalls](docs/analysis_decisions.md)
 - [Session notes, 8 Sept 2026](docs/session_notes_20260908.md)
+- [Rig commissioning notes, 11 Sept 2026](docs/session_notes_20260911.md)
 
 ## Development
 
