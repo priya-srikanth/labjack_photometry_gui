@@ -25,6 +25,20 @@ Two demodulators, for different questions:
 - `lockin_envelope` is quadrature and phase-coherent, so it does not care where
   spectrogram bins land. Prefer it when a weak carrier sits near a strong one.
 
+### Canonical method for batch analysis
+
+The batch default is **spectrogram demodulation**, because this is the method
+used by `neural-timeseries-analysis` (`nta.preprocessing.signal_processing`) and
+the Girasole preprocessing notebook. Specifically, it uses a Hamming-window
+spectrogram and averages the bins nearest the carrier. NTA does not use a
+quadrature lock-in as its main demodulator.
+
+This choice is about comparability, not a claim that spectrogram demodulation
+is universally superior. `lockin` remains a configuration option for leakage,
+phase, and close-carrier investigations. Changing the method creates a new
+cache fingerprint, so a lock-in result can never silently reuse a spectrogram
+envelope.
+
 `suggest_demod_params` requires **8 bins** between carriers, not the 3 that
 merely makes them distinguishable. With one carrier orders of magnitude
 stronger than the other -- the regime this rig has been in -- a Hamming
@@ -64,6 +78,32 @@ lick onsets are falling edges; taking rising edges gives lick *offsets* and
 shifts every alignment.
 
 ## Normalisation
+
+### Names introduced for the batch pipeline (2026-09-11)
+
+The old function name `delta_f_over_f` was scientifically ambiguous. It
+implemented NTA's function named `deltaF`, which is **not** the conventional
+ratio `(F-F0)/F0`. The batch pipeline therefore requires an explicit choice:
+
+- **`rolling_f`** reproduces NTA `deltaF`: optional linear detrending, centred
+  rolling min-max normalization, then subtraction of a centred rolling median.
+  This is the primary method requested for comparison with the existing NTA
+  work. Its values are normalized deviations, not fractional fluorescence.
+- **`rolling_dff`** computes conventional `(F-F0)/F0` from the demodulated
+  voltage envelope. `F0` is a centred rolling percentile (median by default).
+  Near-zero baselines become NaN instead of producing enormous ratios.
+- **`zscore`** applies a centred rolling z-score after demodulation. It remains
+  useful for visualization and detection, but its amplitude depends on local
+  noise.
+- **`raw`** preserves the carrier envelope in volts.
+
+`delta_f_over_f` remains only as a backward-compatible alias to `rolling_f` so
+old scripts do not break. New code must not use that alias. Figures place the
+chosen normalization in both their title/filename and their provenance.
+
+All three transforms receive the same cached demodulated envelope. This keeps
+demodulation, event selection, time axes, and baseline intervals identical
+when comparing normalization methods.
 
 - **dF/F** for comparing conditions. A z-score divides by each session's own
   noise, which varied ~10x across 2026-09-08, so a noisier session's real
@@ -158,6 +198,9 @@ established that the 565 channels were seeing only 470 nm light.
 .\.venv\Scripts\photometry-align.exe C:\data\session.h5 --carrier 231 --channels L_565_detect R_565_detect
 .\.venv\Scripts\photometry-pool.exe "C:\data\PS1*.h5" --output pooled.png
 .\.venv\Scripts\photometry-summary.exe --condition "LABEL=C:\data\sess.h5@231" --dark C:\data\dark.h5 --output summary.png
+.\.venv\Scripts\photometry-batch.exe C:\data\session.h5 --config config\analysis.yaml
+.\.venv\Scripts\photometry-deck.exe photometry --config config\analysis.yaml
+.\.venv\Scripts\photometry-deck.exe behavior --config config\analysis.yaml
 ```
 
 `python -m labjack_photometry_gui.analysis.timecourse <file> --window-s 2`
@@ -166,3 +209,92 @@ prints the per-window table used to spot mid-session changes.
 `photometry-pool` prints every inclusion and exclusion decision with its
 reason, then the pooled peaks at both session and animal level. Add
 `--responsive-only` for the outcome-selected preliminary version.
+
+## Batch architecture and reproducibility (2026-09-11)
+
+### One configuration
+
+`config/analysis.yaml` owns the defaults used by `photometry-batch`: demodulator
+and its time/frequency tradeoff, normalization methods and rolling window,
+alignment/baseline windows, behavior scoring rules, output roots, cache name,
+and figure DPI. Defaults should not be added independently to a new plotting
+script. Add a typed field in `analysis.config`, document it here, and include it
+in the YAML instead.
+
+The YAML contents are copied into every analysis manifest. Editing the YAML
+therefore changes the scientific provenance as well as runtime behavior.
+
+### Demodulate once
+
+The raw detector channel is the expensive input. `analysis.pipeline` computes
+one envelope per `(source H5, detector, carrier, demodulation configuration)`
+and saves it as compressed NPZ. Every normalization and event alignment reuses
+that envelope. The key includes the source's resolved path, size, modification
+time, channel, carrier, and complete demodulation section. Changing any of
+those produces a new artifact instead of overwriting or incorrectly reusing an
+old one.
+
+The cache is derived data. It can be deleted and regenerated without altering
+the H5 source. Do not hand-edit cached arrays.
+
+### Manifest contract
+
+Each analyzed session writes `analysis_manifest.json` containing:
+
+- absolute source H5 path, byte size, modification time, and SHA-256;
+- exact Git commit and whether the checkout was dirty;
+- the complete resolved analysis configuration;
+- Python and analysis-package versions;
+- every output created for that session.
+
+A result intended for comparison or publication should have `git_dirty:
+false`. The first production manifests for PS111 and PS113 on 2026-09-11 were
+regenerated after commit `de75906` specifically to satisfy this condition.
+
+### Output and deck conventions
+
+The directory hierarchy follows `widefield_pipeline`, rather than placing a
+flat collection of ambiguously named PNGs in one directory:
+
+```text
+Photometry/sessions/<animal>/<YYYYMMDD>/<full-session-stem>/
+Behavior_logs/GB219/sessions/<animal>/<YYYYMMDD>/<full-session-stem>/
+```
+
+Photometry filenames contain the session, event, carrier, and normalization.
+Behavior writes a canonical trial CSV plus the per-position lick raster. Deck
+builders discover files from this hierarchy and compute no scientific result;
+they only assemble figures that already exist. This separation lets a deck be
+rebuilt without touching demodulation or trial scoring.
+
+Standing decks live at the roots as `photometry_summary_deck.pptx` and
+`behavior_summary_deck.pptx`. The initial production decks intentionally
+included only the two full 2026-09-11 recordings (`PS111_20260911_163909` and
+`PS113_2_20260911_192740`). The many short hardware checks remain source data
+but were excluded so they cannot be mistaken for behavioral sessions.
+
+### Behavior semantics inherited from widefield
+
+Cue/strobe pairing, response windows, ENL lick counts, and position grouping
+are ported from `widefield_pipeline`. Pairing occurs by time, never row number.
+The current photometry TTL set lacks a separate trial-start input, so the most
+recent position strobe is explicitly used as the trial-start proxy. That proxy
+must be revisited if a true trial-start line is added to the acquisition file.
+
+### Checkout consolidation
+
+`C:\Users\SabatiniLab\Documents\Codex\RigSoftware\labjack_photometry_gui_git`
+is the sole active checkout and owns `.venv`. The launcher and editable package
+installation point there. The former non-Git working copy was preserved as
+`labjack_photometry_gui_legacy_20260810`; it is an archive, not an alternate
+place to edit or run the code. This prevents analysis behavior from depending
+on which similarly named directory happened to be first on `PYTHONPATH`.
+
+## Minimum validation before changing the pipeline
+
+Run `python -m pytest` and `python -m ruff check src tests`. The regression
+suite includes synthetic amplitude-modulated carrier recovery, rejection of a
+neighboring carrier, recovery of a known 10% ΔF/F step, explicit separation of
+rollingF and ΔF/F, configuration parsing, behavior scoring, synchronization,
+H5 recording, and LabJack stream parsing. Add a synthetic ground-truth test
+whenever a scientific transform or event definition changes.

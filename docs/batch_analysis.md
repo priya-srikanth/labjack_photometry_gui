@@ -3,6 +3,10 @@
 `config/analysis.yaml` is the single source of analysis parameters. Commit it
 with code and retain the copy embedded in each session's manifest.
 
+The rationale and historical failure modes behind these choices live in
+`docs/analysis_decisions.md`. This page is the operating guide; the decisions
+page is the scientific contract.
+
 The canonical signal path is:
 
 1. Read the detector voltage and stored carrier metadata.
@@ -36,3 +40,23 @@ photometry-deck behavior --config config\analysis.yaml
 Do not compare plotted units across normalization methods. Compare event shape,
 timing, sign, trial consistency, and position dependence first; then report the
 method and baseline definition with every quantitative result.
+
+## Adding a new batch analysis
+
+Reuse `PhotometrySession`, `process_channel`, `extract_events`, and
+`align_to_events`. Do not open the H5, demodulate, or decode TTLs in a plotting
+module. A plotting module should receive processed traces or aligned matrices.
+If the analysis needs a new parameter, add it to the typed configuration and
+YAML so it enters cache invalidation and provenance.
+
+Do not select recordings because their response looks convincing. Encode
+signal-quality inclusion separately from response-based exploratory selection,
+and retain the reason for every exclusion.
+
+## Standing-deck scope
+
+`photometry-deck` and `photometry-deck behavior` scan the session hierarchy.
+They do not decide which H5 files deserve analysis. Control deck membership by
+which session directories the production batch creates. Short LED, cable,
+gain, and saturation tests should remain outside standing behavioral decks or
+be stored under an explicitly labeled QC-only hierarchy.
