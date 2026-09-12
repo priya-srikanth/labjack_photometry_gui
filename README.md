@@ -165,6 +165,8 @@ its extras with `pip install -e .[analysis]` (matplotlib, pandas, scipy).
 | `timecourse` | The same measurements in consecutive short windows, so mid-session changes appear as steps. |
 | `demodulate` | Spectrogram demodulation matching the `nta` pipeline, quadrature lock-in, oscillation removal, rolling z-score, dF/F. |
 | `events` | Digital lines to event times, trials and spout positions. |
+| `behavior` | Widefield-compatible cue/strobe pairing, trial scoring, ENL counts, and per-position lick data. |
+| `sync` | Irregular heartbeat matching and affine Blackfly-camera to LabJack clock alignment. |
 | `align` | Event-aligned matrices. |
 | `response` | Event-aligned dF/F and peak magnitude. dF/F for comparing conditions, z-scores for detection. |
 | `quality` | Build a channel's trace whether or not it was modulated, and decide on quality grounds alone whether it is usable. |
@@ -177,7 +179,17 @@ its extras with `pip install -e .[analysis]` (matplotlib, pandas, scipy).
 .\.venv\Scripts\photometry-align.exe C:\data\session.h5 --carrier 231 --channels L_565_detect R_565_detect
 .\.venv\Scripts\photometry-pool.exe "C:\data\PS1*.h5" --output pooled.png
 .\.venv\Scripts\photometry-summary.exe --condition "565 nm 231 Hz=C:\data\sess.h5@231" --dark C:\data\dark.h5 --output summary.png
+.\.venv\Scripts\photometry-behavior.exe C:\data\session.h5 --output-dir behavior_figures
 ```
+
+`photometry-behavior` mirrors the widefield DAQ behavior rules. Each cue is
+paired to the most recent position strobe, response windows stop at the next
+cue, and pre-cue timer-reset licks are counted in `[position strobe, cue)`.
+Violations are separately counted only inside the required final lick-free
+window (2 s by default). It writes a trial
+CSV plus a six-position lick raster. The current photometry TTL set has no
+separate `trial_start` line, so position strobe is explicitly used as its
+trial-start proxy.
 
 `photometry-summary` takes repeatable `--condition LABEL=PATH[@CARRIER]`
 arguments; omit `@CARRIER` for constant illumination. Pass `--dark` so the
