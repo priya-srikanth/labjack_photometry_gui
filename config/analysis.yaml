@@ -1,0 +1,32 @@
+schema_version: 1
+
+# NTA-compatible default. Lock-in remains available for targeted QC/comparison.
+demodulation:
+  method: spectrogram
+  target_rate_hz: 50.0
+  nearest_bins: 2
+  min_carrier_separation_bins: 8.0
+  lockin_lowpass_hz: 4.0
+
+normalization:
+  methods: [rolling_f, rolling_dff, zscore]
+  window_s: 60.0
+  dff_percentile: 50.0
+
+alignment:
+  pre_s: 2.0
+  post_s: 5.0
+  baseline_s: [-2.0, -0.5]
+  events: [cue, reward, first_lick_after_reward, lick]
+
+behavior:
+  response_window_s: 3.5
+  lick_free_s: 2.0
+  raster_pre_s: 12.0
+  raster_post_s: 5.0
+
+output:
+  photometry_root: 'N:\MICROSCOPE\Priya\Photometry'
+  behavior_root: 'N:\MICROSCOPE\Priya\Behavior_logs\GB219'
+  cache_subdir: derived_cache
+  dpi: 160

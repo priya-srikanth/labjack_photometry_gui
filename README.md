@@ -173,6 +173,8 @@ its extras with `pip install -e .[analysis]` (matplotlib, pandas, scipy).
 | `pooling` | Combine sessions and animals, averaging per session before across sessions. |
 | `summary` | Compare one event-aligned response across excitation conditions, mixing modulated and constant-illumination recordings. |
 | `plots` | Event-aligned, carrier time-course and pooled-grid figures. |
+| `config` | One versioned YAML schema for demodulation, normalization, alignment, behavior, and output paths. |
+| `pipeline` | Canonical cached preprocessing plus source and software provenance. |
 
 ```powershell
 .\.venv\Scripts\photometry-carrier-qc.exe C:\data\session.h5
@@ -180,7 +182,29 @@ its extras with `pip install -e .[analysis]` (matplotlib, pandas, scipy).
 .\.venv\Scripts\photometry-pool.exe "C:\data\PS1*.h5" --output pooled.png
 .\.venv\Scripts\photometry-summary.exe --condition "565 nm 231 Hz=C:\data\sess.h5@231" --dark C:\data\dark.h5 --output summary.png
 .\.venv\Scripts\photometry-behavior.exe C:\data\session.h5 --output-dir behavior_figures
+.\.venv\Scripts\photometry-batch.exe C:\data\PS111_*.h5 --config config\analysis.yaml
+.\.venv\Scripts\photometry-deck.exe photometry --config config\analysis.yaml
+.\.venv\Scripts\photometry-deck.exe behavior --config config\analysis.yaml
 ```
+
+The canonical batch path uses NTA-compatible Hamming-window spectrogram
+demodulation at 50 Hz. It demodulates each detector/carrier pair once and
+caches the envelope using a fingerprint of the source file and demodulation
+configuration. Every event alignment then reuses that envelope.
+
+Normalization names are scientifically explicit:
+
+- `rolling_f`: the NTA `deltaF` transform (detrend, rolling min-max scale,
+  rolling-median subtraction). This is the default comparison with prior NTA
+  work, but it is not a conventional ratio.
+- `rolling_dff`: conventional `(F-F0)/F0`, using a rolling percentile as F0.
+- `zscore`: rolling z-score of the demodulated envelope for plotting.
+
+Every batch session writes `analysis_manifest.json` with the input SHA-256,
+input timestamps, complete config, code commit, package versions, and outputs.
+The default destinations follow the widefield session hierarchy under
+`N:\MICROSCOPE\Priya\Photometry` and
+`N:\MICROSCOPE\Priya\Behavior_logs\GB219`.
 
 `photometry-behavior` mirrors the widefield DAQ behavior rules. Each cue is
 paired to the most recent position strobe, response windows stop at the next

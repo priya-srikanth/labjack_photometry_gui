@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 .ruff_cache/
+.mplconfig/
 dist/
 build/
 data/

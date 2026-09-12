@@ -11,7 +11,8 @@ Two demodulators are provided because they answer different questions:
     which matters when a weak carrier sits near a much stronger neighbour.
 
 Both return an amplitude in volts, not a normalised signal. Normalise
-afterwards with :func:`delta_f_over_f` or :func:`rolling_zscore`.
+afterwards with :func:`rolling_f`, :func:`rolling_dff`, or
+:func:`rolling_zscore`.
 """
 
 from __future__ import annotations
@@ -299,12 +300,12 @@ def rolling_zscore(
     return z.to_numpy()
 
 
-def delta_f_over_f(
+def rolling_f(
     values: np.ndarray | pd.Series,
     window_samples: int,
     detrend: bool = True,
 ) -> np.ndarray:
-    """Baseline-subtracted fluorescence using a centred rolling median as F0.
+    """NTA-style rolling fluorescence (historically called ``deltaF``).
 
     Mirrors ``nta.preprocessing.signal_processing.deltaF``: optional linear
     detrend for bleaching, min-max normalisation over the rolling window, then
@@ -319,3 +320,39 @@ def delta_f_over_f(
     normalised = (series - lower) / (upper - lower)
     f0 = normalised.rolling(window_samples, center=True).median()
     return (normalised - f0).to_numpy()
+
+
+def rolling_dff(
+    values: np.ndarray | pd.Series,
+    window_samples: int,
+    percentile: float = 50.0,
+) -> np.ndarray:
+    """Conventional rolling-baseline ``(F - F0) / F0``.
+
+    ``F0`` is a centred rolling percentile of the already-demodulated
+    fluorescence envelope. This is intentionally distinct from NTA's
+    min-max/median ``deltaF`` transform implemented by :func:`rolling_f`.
+    """
+    if not 0 <= percentile <= 100:
+        raise ValueError("percentile must be between 0 and 100")
+    series = pd.Series(np.asarray(values, dtype=float))
+    f0 = series.rolling(window=window_samples, center=True).quantile(percentile / 100.0)
+    baseline = f0.to_numpy(copy=True)
+    scale = np.nanmedian(np.abs(baseline))
+    floor = max(np.finfo(float).eps, scale * 1e-9)
+    baseline[np.abs(baseline) < floor] = np.nan
+    return (series.to_numpy() - baseline) / baseline
+
+
+def delta_f_over_f(
+    values: np.ndarray | pd.Series,
+    window_samples: int,
+    detrend: bool = True,
+) -> np.ndarray:
+    """Deprecated compatibility alias for :func:`rolling_f`.
+
+    Earlier releases used this scientifically ambiguous name for NTA's
+    rolling ``deltaF`` transform. New analyses must select ``rolling_f`` or
+    ``rolling_dff`` explicitly.
+    """
+    return rolling_f(values, window_samples, detrend=detrend)

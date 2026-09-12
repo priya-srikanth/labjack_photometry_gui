@@ -21,30 +21,26 @@ from matplotlib import pyplot as plt
 from labjack_photometry_gui.analysis.align import align_to_events
 from labjack_photometry_gui.analysis.carrier_qc import format_table, measure_carriers
 from labjack_photometry_gui.analysis.demodulate import (
-    delta_f_over_f,
-    rolling_zscore,
     spectrogram_demodulate,
     suggest_demod_params,
 )
 from labjack_photometry_gui.analysis.events import extract_events
+from labjack_photometry_gui.analysis.pipeline import normalize_envelope
 from labjack_photometry_gui.analysis.plots import ChannelPanel, figure_event_alignment
 from labjack_photometry_gui.analysis.session import PhotometrySession
 
 NORMALISATION_LABEL = {
     "zscore": "rolling z-score",
-    "dff": "dF/F",
+    "rolling_f": "NTA rollingF",
+    "rolling_dff": "rolling dF/F",
     "raw": "carrier amplitude (V)",
 }
 
 
 def normalise(values: np.ndarray, mode: str, window_samples: int) -> np.ndarray:
     if mode == "zscore":
-        return rolling_zscore(values, window_samples)
-    if mode == "dff":
-        return delta_f_over_f(values, window_samples)
-    if mode == "raw":
-        return values
-    raise ValueError(f"unknown normalisation: {mode}")
+        return normalize_envelope(values, mode, window_samples)
+    return normalize_envelope(values, mode, window_samples)
 
 
 def main() -> int:
