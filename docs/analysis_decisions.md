@@ -267,6 +267,13 @@ builders discover files from this hierarchy and compute no scientific result;
 they only assemble figures that already exist. This separation lets a deck be
 rebuilt without touching demodulation or trial scoring.
 
+Event heatmaps group rows in the same position order used by the mean traces.
+Every block is labeled with the position name and its inclusive one-based row
+range (for example, `close_L rows 1-53`), with a horizontal boundary between
+blocks. Keep the row ranges explicit: on an all-lick raster containing
+thousands of rows, boundary lines without labels are not sufficient to recover
+which trials belong to which spout position.
+
 Standing decks live at the roots as `photometry_summary_deck.pptx` and
 `behavior_summary_deck.pptx`. The initial production decks intentionally
 included only the two full 2026-09-11 recordings (`PS111_20260911_163909` and

@@ -17,6 +17,7 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
 from labjack_photometry_gui.analysis.align import AlignedTraces
+from labjack_photometry_gui.analysis.behavior import POSITION_NAMES
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -89,10 +90,9 @@ def plot_trial_heatmap(
     cbar_label: str,
 ) -> None:
     """Every event as a row, grouped by spout position."""
-    order = np.concatenate(
-        [np.flatnonzero(panel.position == position) for position in positions]
-        or [np.arange(panel.aligned.n_events)]
-    )
+    spans = position_row_spans(panel.position, positions)
+    grouped = [np.flatnonzero(panel.position == position) for position in positions]
+    order = np.concatenate(grouped) if grouped else np.arange(panel.aligned.n_events)
     values = panel.aligned.values[order]
     if values.size == 0:
         ax.set_axis_off()
@@ -109,13 +109,30 @@ def plot_trial_heatmap(
         interpolation="nearest",
     )
     ax.axvline(0.0, **EVENT_LINE_STYLE)
-    # Boundaries between position blocks.
-    edge = 0
-    for position in positions[:-1]:
-        edge += int(np.sum(panel.position == position))
-        ax.axhline(edge, color="0.15", linewidth=0.8)
-    ax.set_ylabel("event (grouped by position)")
+    # Label both the position and its exact one-based row range. A boundary
+    # alone was too easy to misread in dense all-lick heatmaps.
+    for _, start, stop in spans[:-1]:
+        ax.axhline(stop, color="0.15", linewidth=0.8)
+    ax.set_yticks([(start + stop - 1) / 2 for _, start, stop in spans])
+    ax.set_yticklabels([
+        f"{POSITION_NAMES.get(position, f'pos {position}')}\nrows {start + 1}-{stop}"
+        for position, start, stop in spans
+    ], fontsize=8)
+    ax.set_ylabel("spout position and event rows")
     plt.colorbar(image, ax=ax, label=cbar_label, pad=0.02, fraction=0.046)
+
+
+def position_row_spans(position_by_event: np.ndarray,
+                       positions: list[int]) -> list[tuple[int, int, int]]:
+    """Return ``(position, start, stop)`` spans after grouping heatmap rows."""
+    spans: list[tuple[int, int, int]] = []
+    start = 0
+    for position in positions:
+        count = int(np.count_nonzero(position_by_event == position))
+        if count:
+            spans.append((position, start, start + count))
+            start += count
+    return spans
 
 
 def figure_pooled_grid(
