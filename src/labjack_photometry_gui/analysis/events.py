@@ -99,9 +99,17 @@ def extract_events(
         keep = np.concatenate(([True], np.diff(lick) > debounce_s * fs))
         lick = lick[keep]
 
-    strobe = rising_edges(session.digital("Position_strobe"))
-    strobe = strobe[strobe >= guard]
-    position = _latched_position(session, strobe)
+    # Some recordings intentionally omit MIO0 (for example when trial timing
+    # will be recovered from the separately saved behavior log).  Behavioral
+    # TTLs in the H5 remain usable; only trial starts and position labels are
+    # unavailable until that external log is synchronized.
+    if "Position_strobe" in session.digital_names:
+        strobe = rising_edges(session.digital("Position_strobe"))
+        strobe = strobe[strobe >= guard]
+        position = _latched_position(session, strobe)
+    else:
+        strobe = np.array([], dtype=int)
+        position = np.array([], dtype=int)
 
     reward_s = reward / fs
     lick_s = lick / fs

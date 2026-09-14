@@ -42,3 +42,15 @@ def test_quality_flags_collapsed_position_codes():
     ok, reason = trial_quality(trials)
     assert not ok
     assert "dead position bit" in reason
+
+
+def test_trials_preserve_cue_scoring_when_position_strobe_is_absent():
+    trials = build_trials(events(
+        trial_start_s=np.array([]), spout_position=np.array([]),
+        lick_s=np.array([10.25]), reward_s=np.array([10.0]),
+    ))
+    assert trials.trial_start_s.tolist() == [10.0, 20.0]
+    assert trials.position.tolist() == [-1, -1]
+    assert trials.hit.tolist() == [True, False]
+    assert trials.reward_delivered.tolist() == [True, False]
+    assert trials.n_licks_enl.tolist() == [0, 0]

@@ -65,8 +65,16 @@ def build_trials(events: SessionEvents, response_window_s: float = 3.5,
 
     strobe_index = np.searchsorted(starts_all, cue, side="right") - 1
     valid = strobe_index >= 0
-    starts = np.where(valid, starts_all[np.maximum(strobe_index, 0)], cue)
-    position = np.where(valid, codes_all[np.maximum(strobe_index, 0)], -1).astype(int)
+    if starts_all.size:
+        safe_index = np.maximum(strobe_index, 0)
+        starts = np.where(valid, starts_all[safe_index], cue)
+        position = np.where(valid, codes_all[safe_index], -1).astype(int)
+    else:
+        # Preserve cue-, reward-, and lick-based analyses when MIO0 was not
+        # recorded.  ENL duration and spout identity require an external
+        # behavior log and therefore remain explicitly unavailable here.
+        starts = cue.copy()
+        position = np.full(cue.size, -1, dtype=int)
 
     hit = np.zeros(cue.size, bool)
     latency = np.full(cue.size, np.nan)
