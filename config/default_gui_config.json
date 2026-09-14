@@ -13,16 +13,16 @@
         "name": "470 nm",
         "output": "DAC0",
         "frequency_hz": 211.0,
-        "offset_v": 2.5,
-        "amplitude_v": 1.0,
+        "offset_v": 1.8,
+        "amplitude_v": 0.6,
         "enabled": true
       },
       {
         "name": "565 nm",
         "output": "DAC1",
         "frequency_hz": 331.0,
-        "offset_v": 2.5,
-        "amplitude_v": 1.0,
+        "offset_v": 1.0,
+        "amplitude_v": 0.333,
         "enabled": true
       }
     ],
@@ -128,13 +128,13 @@
       {
         "name": "Position_strobe",
         "channel": "MIO0",
-        "enabled": false
+        "enabled": true
       }
     ]
   },
   "ui": {
     "display_seconds": 20.0,
-    "output_dir": "C:\\Users\\Sabatini lab\\Documents\\labjack_photometry_gui\\data",
+    "output_dir": "C:/Users/SabatiniLab/data",
     "save_h5": true,
     "display_order": [
       "di:Sync",
@@ -145,13 +145,13 @@
       "ai:L_565_detect",
       "ai:R_565_detect",
       "di:Lick_detector",
-      "di:Trial_stop",
+      "di:Position_strobe",
       "di:Cue",
       "di:Reward",
+      "di:Trial_stop",
       "di:Position_bit 0",
       "di:Position_bit 1",
-      "di:Position_bit 2",
-      "di:Position_strobe"
+      "di:Position_bit 2"
     ]
   }
 }
