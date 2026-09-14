@@ -1,7 +1,7 @@
 import numpy as np
 
 from labjack_photometry_gui.analysis.behavior import build_trials, trial_quality
-from labjack_photometry_gui.analysis.events import SessionEvents
+from labjack_photometry_gui.analysis.events import SessionEvents, _position_at_samples
 
 
 def events(**overrides):
@@ -54,3 +54,19 @@ def test_trials_preserve_cue_scoring_when_position_strobe_is_absent():
     assert trials.hit.tolist() == [True, False]
     assert trials.reward_delivered.tolist() == [True, False]
     assert trials.n_licks_enl.tolist() == [0, 0]
+
+
+def test_continuously_latched_position_bits_can_be_sampled_without_strobe():
+    class Session:
+        def __init__(self):
+            codes = np.array([4, 4, 2, 2])
+            self.lines = {
+                f"Position_bit {k}": ((codes >> k) & 1).astype(np.int8)
+                for k in range(3)
+            }
+
+        def digital(self, name):
+            return self.lines[name]
+
+    decoded = _position_at_samples(Session(), np.array([0, 2, 3]))
+    assert decoded.tolist() == [4, 2, 2]

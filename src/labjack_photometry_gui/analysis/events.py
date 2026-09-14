@@ -107,6 +107,13 @@ def extract_events(
         strobe = rising_edges(session.digital("Position_strobe"))
         strobe = strobe[strobe >= guard]
         position = _latched_position(session, strobe)
+    elif all(f"Position_bit {k}" in session.digital_names for k in range(3)):
+        # The behavior controller holds the position bits continuously.  When
+        # MIO0 was disabled, the code sampled at cue is therefore still an
+        # exact per-trial position label.  Cue times act only as position
+        # anchors here; true trial starts require the external behavior log.
+        strobe = cue.copy()
+        position = _position_at_samples(session, cue)
     else:
         strobe = np.array([], dtype=int)
         position = np.array([], dtype=int)
@@ -139,9 +146,14 @@ def _latched_position(session: PhotometrySession, strobe: np.ndarray) -> np.ndar
     """
     if strobe.size == 0:
         return np.array([], dtype=int)
-    bits = [session.digital(f"Position_bit {k}") for k in range(3)]
     sample = np.maximum(strobe - 1, 0)
-    code = np.zeros(strobe.size, dtype=int)
+    return _position_at_samples(session, sample)
+
+
+def _position_at_samples(session: PhotometrySession, sample: np.ndarray) -> np.ndarray:
+    """Decode the continuously latched three-bit position at sample indices."""
+    bits = [session.digital(f"Position_bit {k}") for k in range(3)]
+    code = np.zeros(sample.size, dtype=int)
     for k, line in enumerate(bits):
         code |= line[sample].astype(int) << k
     return code
