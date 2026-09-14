@@ -59,6 +59,34 @@ overlaps the signal band and a notch is the only option. It removes everything
 within `bandwidth_hz` of the centre, biology included, so report the bandwidth
 alongside any result and inspect the returned `removed` component.
 
+### Nuisance-control sensitivity analysis (2026-09-14)
+
+Fast GCaMP8m views exposed structured 10--15 Hz fluctuations that 40 ms
+smoothing made look more transient-like. Smoothing is display-only: it must
+never be described as removal of the oscillation. Downsampling an envelope to
+50 Hz also does not remove a component below its 25 Hz Nyquist frequency.
+
+`photometry-nuisance` writes three explicitly labeled versions side by side:
+the uncorrected rolling z-score, a same-hemisphere 565-regressed residual, and
+a narrowband oscillation-regressed residual. The 565 regression is fitted only
+on samples at least one second from first-bout licks, so an event response is
+not defined away merely because both channels are event locked. Neither
+corrected trace replaces the uncorrected primary result: 565 may carry biology
+or wavelength-dependent motion, and the narrow band may contain fast GCaMP8m
+power.
+
+Circular event-time shuffles use one global shift, preserving lick-train
+intervals and continuous-trace autocorrelation. They are evaluated on first
+licks preceded by at least one second without licking; individual licks inside
+a bout are not independent and are shown descriptively only. Nuisance figures
+are stratified by the continuously latched position bits sampled at cue.
+
+At 5 kHz acquisition with 211/331 Hz carriers and the eight-bin separation
+rule, the Hamming window is about 67 ms. Raising spectrogram output from 50 to
+200 Hz creates denser overlapping estimates but does not create 5 ms physical
+resolution. Keep 50 Hz for canonical NTA-compatible batch output and use 200
+Hz only for labeled fast-timescale sensitivity figures.
+
 **Filter ringing was checked, not assumed.** A synthetic transient matching the
 measured response shape, pushed through the same 4 Hz Butterworth, produces
 pre-event excursions of -0.013 to +0.007 on a peak of 2.91 -- 0.4%. The few-Hz
@@ -201,6 +229,7 @@ established that the 565 channels were seeing only 470 nm light.
 .\.venv\Scripts\photometry-batch.exe C:\data\session.h5 --config config\analysis.yaml
 .\.venv\Scripts\photometry-deck.exe photometry --config config\analysis.yaml
 .\.venv\Scripts\photometry-deck.exe behavior --config config\analysis.yaml
+.\.venv\Scripts\photometry-nuisance.exe C:\data\session.h5 --config config\analysis.yaml --output C:\analysis\session
 ```
 
 `python -m labjack_photometry_gui.analysis.timecourse <file> --window-s 2`
@@ -284,9 +313,12 @@ but were excluded so they cannot be mistaken for behavioral sessions.
 
 Cue/strobe pairing, response windows, ENL lick counts, and position grouping
 are ported from `widefield_pipeline`. Pairing occurs by time, never row number.
-The current photometry TTL set lacks a separate trial-start input, so the most
-recent position strobe is explicitly used as the trial-start proxy. That proxy
-must be revisited if a true trial-start line is added to the acquisition file.
+When MIO0 is recorded, the most recent position strobe is used as the
+trial-start proxy. When MIO0 is disabled but bits 0--2 are present, their
+continuously latched value is sampled at cue; this recovered all 307 positions
+in PS113 2026-09-14 with 100% agreement to the behavior log's cue events.
+Cue-time fallback provides position but not true trial start or ENL duration;
+those require synchronization to the external behavior log.
 
 ### Checkout consolidation
 
