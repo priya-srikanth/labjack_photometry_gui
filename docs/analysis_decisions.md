@@ -337,3 +337,46 @@ neighboring carrier, recovery of a known 10% ΔF/F step, explicit separation of
 rollingF and ΔF/F, configuration parsing, behavior scoring, synchronization,
 H5 recording, and LabJack stream parsing. Add a synthetic ground-truth test
 whenever a scientific transform or event definition changes.
+
+## 2026-09-16 PS113 data-quality and pooling decisions
+
+The PS113 2026-09-16 session used approximately 100 uW of 470-nm excitation.
+Carrier recovery remained strong at 211 Hz and 331 Hz, and the bulk detector
+voltage distributions stayed away from the acquisition rails. Sparse extrema
+near 0 and 10.1 V occupied less than 1e-7 of samples and were treated as
+isolated acquisition glitches rather than sustained clipping.
+
+The demodulated 470-nm envelope declined during the first 20 minutes. Median
+L470 fluorescence decreased by 30.9% from the first to the twentieth one-minute
+bin; R470 decreased by 27.5%. Most of the decline occurred during the first
+several minutes, consistent with photobleaching or early optical settling.
+Rolling z-scoring after demodulation compensates for much of this slow drift,
+so the early-session analysis used the same 200-Hz NTA spectrogram, rolling
+z-score, event baseline, and 6-Hz display low-pass as the full-session analysis.
+
+Restricting the analysis to the first 20 minutes did not recover a clearly
+stronger 470-nm lick response. The interval contained 1,497 licks and 432 first
+licks of bouts. Mean 0-100 ms responses were 0.017 +/- 0.016 z (L470 all
+licks), 0.035 +/- 0.016 z (R470 all licks), 0.065 +/- 0.028 z (L470 first
+lick of bout), and 0.064 +/- 0.028 z (R470 first lick of bout). Small positive
+deflections remained embedded in lick-locked oscillatory structure, and the
+first-bout peaks were essentially unchanged from the full-session estimates.
+Therefore, photobleaching reduced absolute photon signal but does not explain
+the weak event-aligned 470 result by itself.
+
+The selected 470 pool excludes only the 2026-09-16 470 channels. It otherwise
+retains the prior selection: PS111 R470 on 2026-09-11, PS113 L470 on
+2026-09-14, and PS113 L470 on 2026-09-15. The 2026-09-16 470 data remain in
+the standardized per-session deck as an auditable excluded session.
+
+The selected 565 pool is unchanged: PS113-2 L565 and R565 on 2026-09-11 plus
+PS113 L565 and R565 on 2026-09-14, 2026-09-15, and 2026-09-16. Pooled
+reporting includes both reward alignment and first lick after reward. Dedicated
+first-lick slides show all positions pooled and the six hemisphere-relative
+position groups. Session-duration weighting, channel inclusion, demodulation,
+normalization, and display smoothing are identical to the prior 565 pool.
+
+Canonical reporting uses two decks: a standardized per-session audit deck and
+a selected pooled deck. The pooled deck records the channel-selection rule and
+contains the dedicated first-lick-after-reward dopamine analyses. Incremental
+or superseded deck variants should not be treated as analysis outputs.
