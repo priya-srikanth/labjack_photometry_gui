@@ -437,3 +437,33 @@ leakthrough, shared motion, or optical coupling. Command loopbacks verify that
 DAC0/AIN2 carries the 470 command and DAC1/AIN3 carries the 565 command, but
 they do not prove wavelength isolation after light passes through the animal,
 fiber paths, cube, and detectors.
+
+## Longitudinal no-lick 565 response (2026-09-18)
+
+To test whether the cue-aligned 565 response is transiently elevated just
+after the animal stops licking, quantify every no-lick cue using the mean
+baseline-corrected rolling z-score from 0.05 to 0.75 s after cue. The baseline
+is -1.0 to -0.5 s. Plot amplitude both against absolute session minute and
+minutes since the last detected lick. Distinguish intermittent misses from the
+terminal contiguous no-lick block.
+
+Pooling for this question differs from the duration-weighted trace pool. L565
+and R565 are first averaged within session and elapsed time is divided into
+two-minute bins; sessions then receive equal weight. This avoids treating the
+two hemispheres or a session with more miss trials as independent animals.
+Sessions need at least ten terminal no-lick trials and both 331-Hz carrier
+amplitudes must exceed 0.03 V.
+
+The valid terminal blocks were 9/15, 9/16, and 9/17. Their L/R-averaged linear
+slopes were -0.004, +0.045, and -0.066 z/min. The mean slope was -0.008 z/min
+(descriptive one-sample t test, p=0.82, n=3 sessions). The pooled two-minute
+means were 0.140 z at 0-2 min and 0.130 z at 2-4 min. The 4-6 min estimate was
+0.303 z but contained only two sessions. Thus there is no evidence that the
+response is highest immediately after licking stops or that it progressively
+decays; later estimates are too sparse for a strong claim.
+
+The 9/18 recording is displayed only as a failed-QC diagnostic and excluded
+from this pool. Its 331-Hz carrier amplitudes were 0.015 V (L565) and 0.003 V
+(R565), compared with 0.083-0.117 V in the included sessions; its detector
+baselines were also abnormally negative. Normal DAC loopbacks show that the
+command waveforms were generated, but cannot rescue absent detector signal.
