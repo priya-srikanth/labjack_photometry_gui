@@ -16,7 +16,7 @@ from labjack_photometry_gui.analysis.pipeline import process_channel
 from labjack_photometry_gui.analysis.session import PhotometrySession
 
 ROOT = Path(r"C:\Users\SabatiniLab\Documents\Codex\2026-08-10\i\retraction_across_sessions")
-CONFIG = Path(r"C:\Users\SabatiniLab\Documents\Codex\RigSoftware\labjack_photometry_gui_git\config\analysis.yaml")
+CONFIG = Path(r"C:\Users\SabatiniLab\Documents\Codex\RigSoftware\labjack_photometry_gui\config\analysis.yaml")
 RATE = 200.0
 LOWPASS_HZ = 6.0
 SESSIONS = (

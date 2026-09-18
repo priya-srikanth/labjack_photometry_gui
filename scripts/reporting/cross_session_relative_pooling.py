@@ -16,7 +16,7 @@ from labjack_photometry_gui.analysis.pipeline import process_channel
 from labjack_photometry_gui.analysis.session import PhotometrySession
 
 ROOT = Path(r"C:\Users\SabatiniLab\Documents\Codex\2026-08-10\i\cross_session_20260914")
-CONFIG = Path(r"C:\Users\SabatiniLab\Documents\Codex\RigSoftware\labjack_photometry_gui_git\config\analysis.yaml")
+CONFIG = Path(r"C:\Users\SabatiniLab\Documents\Codex\RigSoftware\labjack_photometry_gui\config\analysis.yaml")
 RATE = 200.0
 SMOOTH_MS = 40.0
 WINDOW = (-1.0, 1.0)

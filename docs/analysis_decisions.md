@@ -322,12 +322,13 @@ those require synchronization to the external behavior log.
 
 ### Checkout consolidation
 
-`C:\Users\SabatiniLab\Documents\Codex\RigSoftware\labjack_photometry_gui_git`
-is the sole active checkout and owns `.venv`. The launcher and editable package
-installation point there. The former non-Git working copy was preserved as
-`labjack_photometry_gui_legacy_20260810`; it is an archive, not an alternate
-place to edit or run the code. This prevents analysis behavior from depending
-on which similarly named directory happened to be first on `PYTHONPATH`.
+`C:\Users\SabatiniLab\Documents\Codex\RigSoftware\labjack_photometry_gui`
+is the authoritative checkout. All future edits, commits, analysis-config
+references, and launcher setup should use this no-suffix directory. Directories
+named `labjack_photometry_gui_git` or `labjack_photometry_gui_legacy_20260810`
+are fallback/archive copies, not alternate places to edit or run the code.
+This prevents analysis behavior from depending on which similarly named
+directory happened to be first on `PYTHONPATH`.
 
 ## Minimum validation before changing the pipeline
 
@@ -404,3 +405,35 @@ The reporting implementation is preserved under `scripts/reporting`. Those
 scripts create session figures, the duration-weighted selected pools,
 trial-stop sensitivity figures, and the two canonical decks. Generated PNG,
 JSON, cache, H5, and PPTX outputs remain outside Git.
+
+## Interpretation boundaries for the September data
+
+The repeated 565-nm responses are empirically robust but are not, by
+themselves, proof of dopamine specificity. Reward, cue, consummatory licking,
+movement, and spout motion are temporally coupled in this task. The persistence
+of a smaller cue response on no-lick trials supports a cue/outcome component,
+while the trial-stop response motivates explicit spout-retraction controls.
+Both observations must remain visible rather than collapsing the result into a
+single "dopamine transient" claim.
+
+Likewise, a lick-aligned 470-nm deflection is not automatically a GCaMP8m
+response. The unsmoothed event means contain structured lick-locked
+oscillations, and the response varies by channel and session. The 6-Hz
+zero-phase low-pass is a display/sensitivity view; it suppresses oscillatory
+noise but does not create temporal resolution or establish biological origin.
+Primary reporting therefore retains the uncorrected rolling-z result alongside
+nuisance-control and session-selection information.
+
+The 50-Hz and 200-Hz products answer different display questions. Fifty hertz
+is adequate for slower reward-scale summaries but does not selectively remove
+60-Hz electrical contamination and is coarse for fast GCaMP8m lick responses.
+The standardized fast analyses use a 200-Hz envelope followed by stated
+smoothing/filtering. Demodulation always precedes rolling normalization and
+downsampling.
+
+Detector labels denote optical/detector paths, not fluorophore identity. Strong
+signal on a nominal 565 detector can reflect its own 565 carrier, 470-light
+leakthrough, shared motion, or optical coupling. Command loopbacks verify that
+DAC0/AIN2 carries the 470 command and DAC1/AIN3 carries the 565 command, but
+they do not prove wavelength isolation after light passes through the animal,
+fiber paths, cube, and detectors.

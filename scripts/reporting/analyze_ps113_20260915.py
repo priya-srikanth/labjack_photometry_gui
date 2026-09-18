@@ -18,7 +18,7 @@ from labjack_photometry_gui.analysis.pipeline import process_channel
 from labjack_photometry_gui.analysis.session import PhotometrySession
 
 SOURCE = Path(r"C:\Users\SabatiniLab\data\PS113_20260915_110019.h5")
-CONFIG = Path(r"C:\Users\SabatiniLab\Documents\Codex\RigSoftware\labjack_photometry_gui_git\config\analysis.yaml")
+CONFIG = Path(r"C:\Users\SabatiniLab\Documents\Codex\RigSoftware\labjack_photometry_gui\config\analysis.yaml")
 OUTPUT = Path(r"C:\Users\SabatiniLab\Documents\Codex\2026-08-10\i\PS113_20260915_analysis")
 SESSION_DAY = "9/15"
 SUBJECT = "PS113"
