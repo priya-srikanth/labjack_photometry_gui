@@ -155,6 +155,12 @@ Quick recording checks:
 
 ## Offline Analysis
 
+The reusable acquisition and analysis package lives under `src`. The
+rig-specific, auditable reporting scripts used for the September 2026 session
+and pooled decks live under `scripts/reporting`; see
+`docs/analysis_decisions.md` and the dated session notes for inclusion rules,
+event definitions, time windows, and position recoding.
+
 `src/labjack_photometry_gui/analysis/` reads recorded HDF5 files back. Install
 its extras with `pip install -e .[analysis]` (matplotlib, pandas, scipy).
 

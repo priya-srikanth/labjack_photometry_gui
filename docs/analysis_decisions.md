@@ -380,3 +380,27 @@ Canonical reporting uses two decks: a standardized per-session audit deck and
 a selected pooled deck. The pooled deck records the channel-selection rule and
 contains the dedicated first-lick-after-reward dopamine analyses. Incremental
 or superseded deck variants should not be treated as analysis outputs.
+
+## 2026-09-17 reporting and pooling update
+
+The selected 565 pool now includes both L565 and R565 from the 2026-09-17
+PS113 session. The 2026-09-17 470 channels remain excluded from the selected
+470 pool and appear only in the per-session audit deck. This is an explicit
+channel-quality decision; it does not alter the earlier 470 inclusion set.
+
+Position reporting now has two complementary pooled views. The
+hemisphere-relative view recodes physical left/right as ipsi/contra separately
+for each detector hemisphere. The physical-position view retains near/far L,
+center, and R columns and shows L and R detector hemispheres in separate rows.
+Never recode once at the session level: the same physical-left trial is ipsi
+for L565 and contra for R565.
+
+Corresponding L/R rows use identical y-axis limits within each event
+definition. Reward and first-lick-after-reward may use different limits. The
+565 reporting window is -1 to +3.5 s; fast 470 lick views remain -1 to +1 s.
+These are display windows and do not modify the underlying demodulated trace.
+
+The reporting implementation is preserved under `scripts/reporting`. Those
+scripts create session figures, the duration-weighted selected pools,
+trial-stop sensitivity figures, and the two canonical decks. Generated PNG,
+JSON, cache, H5, and PPTX outputs remain outside Git.
