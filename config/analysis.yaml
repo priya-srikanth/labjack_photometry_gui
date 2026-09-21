@@ -20,7 +20,7 @@ alignment:
   events: [cue, reward, first_lick_after_reward, lick]
 
 behavior:
-  response_window_s: 3.5
+  response_window_s: 3.0
   lick_free_s: 2.0
   raster_pre_s: 12.0
   raster_post_s: 5.0

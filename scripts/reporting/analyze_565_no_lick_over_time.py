@@ -8,6 +8,7 @@ import numpy as np
 from scipy.stats import linregress
 
 from labjack_photometry_gui.analysis.align import align_to_events
+from labjack_photometry_gui.analysis.behavior import build_trials
 from labjack_photometry_gui.analysis.carrier_qc import measure_carriers
 from labjack_photometry_gui.analysis.config import load_analysis_config
 from labjack_photometry_gui.analysis.events import extract_events
@@ -24,6 +25,7 @@ SESSIONS = (
     (Path(r"C:\Users\SabatiniLab\data\PS113_20260916_104941.h5"), "9/16"),
     (Path(r"C:\Users\SabatiniLab\data\PS113_20260917_104145.h5"), "9/17"),
     (Path(r"C:\Users\SabatiniLab\data\PS113_20260918_122842.h5"), "9/18"),
+    (Path(r"C:\Users\SabatiniLab\data\PS113_20260921_105243.h5"), "9/21"),
 )
 CHANNELS = ("L_565_detect", "R_565_detect")
 RESPONSE_WINDOW = (0.05, 0.75)
@@ -31,8 +33,8 @@ BASELINE_WINDOW = (-1.0, -0.5)
 MIN_VALID_CARRIER_V = 0.03
 
 
-def cue_outcomes(cues, licks, response_s=3.5):
-    hit = np.array([np.any((licks >= cue) & (licks <= cue + response_s)) for cue in cues])
+def cue_outcomes(events):
+    hit = build_trials(events, response_window_s=3.0).hit
     start = len(hit)
     while start and not hit[start - 1]:
         start -= 1
@@ -69,7 +71,7 @@ def main():
             continue
         with PhotometrySession(path) as session:
             events = extract_events(session)
-            hit, terminal = cue_outcomes(events.cue_s, events.lick_s)
+            hit, terminal = cue_outcomes(events)
             since_lick = time_since_last_lick(events.cue_s, events.lick_s)
             qc = measure_carriers(session, carriers_hz=[331.0])
             amp = {row.channel: row.carrier_amplitude_v for row in qc if row.channel in CHANNELS}
@@ -160,7 +162,8 @@ def main():
     valid_labels = []
     for label in session_results:
         rows = [r for r in records if r["session"] == label and r["terminal"] and r["qc_included"]]
-        if len(rows) < 10:
+        n_trials = max((sum(r["channel"] == channel for r in rows) for channel in CHANNELS), default=0)
+        if n_trials < 10:
             continue
         valid_labels.append(label)
         values = np.full(centers.size, np.nan)
@@ -194,9 +197,56 @@ def main():
                 bbox_inches="tight")
     plt.close(fig)
 
+    # Explicit early-vs-late terminal-block comparison. Average hemispheres
+    # within trial rank and sessions equally; require 20 complete terminal
+    # trials so the first and last ten never overlap.
+    early_late = []
+    for label in session_results:
+        channel_rows = {}
+        for channel in CHANNELS:
+            channel_rows[channel] = sorted(
+                (r for r in records if r["session"] == label and r["channel"] == channel
+                 and r["terminal"] and r["qc_included"]),
+                key=lambda r: r["session_minute"],
+            )
+        n_trials = min((len(rows) for rows in channel_rows.values()), default=0)
+        if n_trials < 20:
+            continue
+        trial_values = np.mean(
+            np.vstack([[row["response_z"] for row in channel_rows[channel]]
+                       for channel in CHANNELS]), axis=0,
+        )
+        early_late.append({"session": label, "n_terminal": n_trials,
+                           "first10_mean_z": float(np.mean(trial_values[:10])),
+                           "last10_mean_z": float(np.mean(trial_values[-10:])),
+                           "late_minus_early_z": float(np.mean(trial_values[-10:]) -
+                                                       np.mean(trial_values[:10]))})
+
+    fig, ax = plt.subplots(figsize=(7.5, 5.5))
+    for row in early_late:
+        ax.plot([0, 1], [row["first10_mean_z"], row["last10_mean_z"]], marker="o",
+                lw=1.6, alpha=.75, label=row["session"])
+    if early_late:
+        pooled_early = np.mean([row["first10_mean_z"] for row in early_late])
+        pooled_late = np.mean([row["last10_mean_z"] for row in early_late])
+        ax.plot([0, 1], [pooled_early, pooled_late], marker="o", color="black", lw=3.5,
+                ms=8, label="session-equal mean")
+    ax.set(xticks=[0, 1], xticklabels=["first 10 misses", "last 10 misses"],
+           ylabel="565 cue response: mean 0.05-0.75 s\n(baseline-corrected z)",
+           title="Early vs late response within terminal no-lick blocks\n"
+                 "L/R averaged; sessions require >=20 terminal misses")
+    ax.axhline(0, color=".7", lw=.8)
+    ax.grid(axis="y", alpha=.2)
+    ax.legend(frameon=False, ncol=2)
+    fig.tight_layout()
+    fig.savefig(OUTPUT / "pooled_565_terminal_no_lick_first10_vs_last10.png", dpi=220,
+                bbox_inches="tight")
+    plt.close(fig)
+
     summary = {"response_window_s": RESPONSE_WINDOW, "baseline_window_s": BASELINE_WINDOW,
                "carrier_qc_threshold_v": MIN_VALID_CARRIER_V,
                "pooled_sessions": valid_labels, "sessions": session_results,
+               "terminal_first10_vs_last10": early_late,
                "pooled_bin_centers_min": centers.tolist(), "pooled_mean_z": mean.tolist(),
                "pooled_sem_z": sem.tolist(), "pooled_n_sessions": n.tolist()}
     (OUTPUT / "metrics.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
@@ -205,5 +255,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-

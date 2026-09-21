@@ -48,7 +48,7 @@ class BehaviorTrials:
         return sorted({int(p) for p in self.position if p in POSITION_NAMES})
 
 
-def build_trials(events: SessionEvents, response_window_s: float = 3.5,
+def build_trials(events: SessionEvents, response_window_s: float = 3.0,
                  lick_free_s: float = 2.0) -> BehaviorTrials:
     """Pair strobes to cues and score response and ENL licks.
 
@@ -61,6 +61,7 @@ def build_trials(events: SessionEvents, response_window_s: float = 3.5,
     codes_all = np.asarray(events.spout_position, int)
     licks = np.asarray(events.lick_s, float)
     rewards = np.asarray(events.reward_s, float)
+    stops = np.asarray(events.trial_stop_s, float)
     next_cue = np.r_[cue[1:], np.inf]
 
     strobe_index = np.searchsorted(starts_all, cue, side="right") - 1
@@ -83,7 +84,12 @@ def build_trials(events: SessionEvents, response_window_s: float = 3.5,
     n_violations = np.zeros(cue.size, int)
     rewarded = np.zeros(cue.size, bool)
     for k, (start, event, following) in enumerate(zip(starts, cue, next_cue, strict=True)):
-        response_end = min(event + response_window_s, following)
+        paired_stops = stops[(stops >= event) & (stops < following)]
+        # Trial_stop is the behavioral controller's authoritative end of the
+        # response window. The nominal duration is only a fallback for files
+        # missing that TTL.
+        response_end = (paired_stops[0] if paired_stops.size else
+                        min(event + response_window_s, following))
         post = licks[(licks >= event) & (licks <= response_end)]
         n_response[k] = post.size
         hit[k] = bool(post.size)
@@ -96,7 +102,7 @@ def build_trials(events: SessionEvents, response_window_s: float = 3.5,
                           n_enl, n_violations, rewarded, licks, float(response_window_s))
 
 
-def trials_from_session(session: PhotometrySession, response_window_s: float = 3.5,
+def trials_from_session(session: PhotometrySession, response_window_s: float = 3.0,
                         lick_free_s: float = 2.0) -> BehaviorTrials:
     return build_trials(extract_events(session), response_window_s, lick_free_s)
 

@@ -12,7 +12,7 @@
 ## Behavior and event counts
 
 - 330 cues
-- 262 cue trials with a lick in the 3.5-s response window
+- 261 cue trials with a lick before the recorded `Trial_stop`
 - 68 miss trials
 - 3,864 complete-window licks for the full-session 470 alignment
 - 1,287 complete-window first licks of bouts for the full-session alignment

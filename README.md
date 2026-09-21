@@ -189,6 +189,8 @@ its extras with `pip install -e .[analysis]` (matplotlib, pandas, scipy).
 .\.venv\Scripts\photometry-pool.exe "C:\data\PS1*.h5" --output pooled.png
 .\.venv\Scripts\photometry-summary.exe --condition "565 nm 231 Hz=C:\data\sess.h5@231" --dark C:\data\dark.h5 --output summary.png
 .\.venv\Scripts\photometry-behavior.exe C:\data\session.h5 --output-dir behavior_figures
+.\.venv\Scripts\photometry-camera-qc.exe C:\camera --date 20260921 --animal PS113 --output-dir daily_qc
+.\.venv\Scripts\photometry-daily.exe --date 20260921 --animal PS113 --h5 C:\data\session.h5 --camera-root C:\camera --output-dir daily_qc --server-root N:\
 .\.venv\Scripts\photometry-batch.exe C:\data\PS111_*.h5 --config config\analysis.yaml
 .\.venv\Scripts\photometry-deck.exe photometry --config config\analysis.yaml
 .\.venv\Scripts\photometry-deck.exe behavior --config config\analysis.yaml

@@ -35,7 +35,7 @@ class AlignmentConfig:
 
 @dataclass(frozen=True)
 class BehaviorConfig:
-    response_window_s: float = 3.5
+    response_window_s: float = 3.0
     lick_free_s: float = 2.0
     raster_pre_s: float = 12.0
     raster_post_s: float = 5.0

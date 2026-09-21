@@ -467,3 +467,43 @@ from this pool. Its 331-Hz carrier amplitudes were 0.015 V (L565) and 0.003 V
 (R565), compared with 0.083-0.117 V in the included sessions; its detector
 baselines were also abnormally negative. Normal DAC loopbacks show that the
 command waveforms were generated, but cannot rescue absent detector signal.
+
+## 2026-09-21 lick-trial pooling rule
+
+The selected pooled 565 reward figures now include only trials containing a
+lick before the recorded `Trial_stop`. A 3-s post-cue window is used only if
+`Trial_stop` is missing. This rule applies to the all-position pool, the
+hemisphere-relative position pool, and the physical-position-by-hemisphere
+pool. Reward alignment uses the recorded reward TTL for qualifying trials.
+First-lick-after-reward alignment is restricted to the same qualifying reward
+indices, rather than allowing a late lick from a behavioral miss to enter.
+
+This restriction makes the pooled reward and first-lick figures describe the
+same behavioral trial population. Miss trials remain available in explicit
+lick-versus-miss and no-lick analyses; they do not silently dilute the default
+565 pool. Both 9/21 565 channels pass carrier QC and join this pool. The 9/18
+channels remain excluded, and the 9/21 470 channels remain per-session only.
+
+## Daily photometry/behavior ingest and camera QC (2026-09-21)
+
+The daily pipeline now treats the Bonsai Blackfly CSV as the camera timing
+ground truth. Frame-ID discontinuities count dropped frames, while hardware
+timestamp intervals report the achieved acquisition rate and long gaps. The
+9/21 cameras had zero frame-ID gaps on all four streams and each ran at
+196.049 fps (5.1008 ms median interval), despite the nominal 200-fps setting.
+
+`photometry-daily` generates the behavior table and position raster, writes a
+camera-QC CSV/text summary, and optionally archives the H5, AVI, camera CSV,
+and QC files. Local deletion remains opt-in and occurs only after destination
+size and SHA-256 match, archived H5 datasets open, and AVI RIFF headers pass.
+Camera archives use
+`Behavior_cameras/GB219/<YYYYMMDD>/<animal>`; H5 files use
+`Photometry/data`. Use the UNC root when a mapped drive is invisible to the
+Codex process.
+
+Explicit first-10 versus last-10 terminal-miss comparisons were added to the
+longitudinal 565 analysis. The change was +0.10 z on 9/15, +0.21 z on 9/16,
+and -0.10 z on 9/17, so prior sessions do not show a consistent early-to-late
+direction. The 9/21 terminal contiguous block has only nine complete windows;
+its prespecified middle-versus-end epoch plot remains the appropriate within-
+session comparison.

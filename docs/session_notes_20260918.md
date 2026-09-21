@@ -1,7 +1,7 @@
 # PS113 photometry session, 2026-09-18
 
 The source file is `PS113_20260918_122842.h5` (5979.2 s). Behavior contained
-540 cue trials, 421 trials with a lick in the 3.5-s response window, and 119
+540 cue trials, 419 trials with a lick before the recorded `Trial_stop`, and 121
 misses. The terminal contiguous no-lick block began at trial 459 and contained
 82 trials.
 

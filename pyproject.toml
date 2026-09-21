@@ -44,6 +44,8 @@ photometry-behavior = "labjack_photometry_gui.analysis.behavior_cli:main"
 photometry-batch = "labjack_photometry_gui.analysis.batch_cli:main"
 photometry-deck = "labjack_photometry_gui.analysis.deck_cli:main"
 photometry-nuisance = "labjack_photometry_gui.analysis.nuisance_cli:main"
+photometry-camera-qc = "labjack_photometry_gui.analysis.camera_qc:main"
+photometry-daily = "labjack_photometry_gui.analysis.daily_pipeline:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

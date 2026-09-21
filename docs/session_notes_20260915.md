@@ -13,7 +13,7 @@
 
 ## Behavior and cue outcomes
 
-There were 360 cue trials: 308 had a lick within the 3.5-s response window and
+There were 360 cue trials: 308 had a lick before the recorded `Trial_stop` and
 52 did not. The terminal no-lick block began at trial 320 and contained 41
 trials. Three cue trials at the file boundaries lacked a complete photometry
 window, leaving 357 complete cues: 307 lick trials, 50 no-lick trials, and 39

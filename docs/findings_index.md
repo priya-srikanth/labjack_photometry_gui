@@ -13,6 +13,7 @@ animal, optical path, amplifier setting, or acquisition configuration.
 | 2026-09-16 | `session_notes_20260916.md` | Approximately 100-uW 470 session, photobleaching/first-20-minute test, exclusion of 470 and inclusion of 565 in the selected pool. |
 | 2026-09-17 | `session_notes_20260917.md` | Latest behavior summary, 565 inclusion and 470 exclusion, physical/relative position reporting, and matched hemisphere scales. |
 | 2026-09-18 | `session_notes_20260918.md` | Normal DAC loopbacks but failed detector operating points and near-absent carriers; all photometry channels excluded from pooling. |
+| 2026-09-21 | `session_notes_20260921.md` | Detector recovery, middle/end no-lick epochs, actual reward-TTL comparison, and inclusion of 565 only in the selected pool. |
 
 `analysis_decisions.md` is the authoritative cross-session rationale. It
 defines demodulation and normalization order, event semantics, session and

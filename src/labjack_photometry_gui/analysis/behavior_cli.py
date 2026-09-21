@@ -76,11 +76,49 @@ def plot_rasters(path: Path, source_label: str, trials, pre_s: float, post_s: fl
     plt.close(fig)
 
 
+def plot_behavior_summary(path: Path, source_label: str, trials, rolling_trials: int = 25) -> None:
+    """Session progression and per-position performance in one daily-QC figure."""
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5.5))
+    kernel = np.ones(rolling_trials) / rolling_trials
+    rolling = np.convolve(trials.hit.astype(float), kernel, mode="valid")
+    x = np.arange(rolling_trials, trials.n_trials + 1)
+    axes[0].plot(x, rolling, color="#1f4e79", lw=2)
+    axes[0].scatter(np.arange(1, trials.n_trials + 1), trials.hit.astype(float),
+                    s=5, alpha=.12, color="black")
+    axes[0].set(xlabel="trial", ylabel=f"hit rate ({rolling_trials}-trial mean)",
+                ylim=(-.05, 1.05), title="Performance across session")
+    axes[0].grid(alpha=.2)
+
+    labels, rates, latencies = [], [], []
+    for position in POSITION_ORDER:
+        mask = trials.position == position
+        labels.append(POSITION_NAMES[position].replace(" ", "\n"))
+        rates.append(float(np.mean(trials.hit[mask])) if mask.any() else np.nan)
+        sample = trials.first_lick_latency_s[mask & trials.hit]
+        latencies.append(float(np.nanmedian(sample)) if sample.size else np.nan)
+    axis = axes[1]
+    bars = axis.bar(np.arange(len(labels)), rates, color=[COLORS[p] for p in POSITION_ORDER], alpha=.8)
+    axis.set(xticks=np.arange(len(labels)), xticklabels=labels, ylim=(0, 1.05),
+             ylabel="hit rate", title="Performance by spout position")
+    for bar, rate, latency in zip(bars, rates, latencies, strict=True):
+        axis.text(bar.get_x() + bar.get_width()/2, max(rate, 0) + .025,
+                  f"{rate:.2f}\n{latency:.3f}s", ha="center", va="bottom", fontsize=8)
+    axis.grid(axis="y", alpha=.2)
+    fig.suptitle(f"Behavior summary — {source_label}\n"
+                 "Bar labels: hit rate and median first-lick latency")
+    fig.tight_layout(rect=(0, 0, 1, .91))
+    fig.savefig(path, dpi=180, bbox_inches="tight")
+    plt.close(fig)
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("h5_files", nargs="+", type=Path)
     parser.add_argument("--output-dir", type=Path, default=Path("behavior_figures"))
-    parser.add_argument("--response-window", type=float, default=3.5)
+    parser.add_argument(
+        "--response-window", type=float, default=3.0,
+        help="fallback duration when Trial_stop is absent (Trial_stop is authoritative)",
+    )
     parser.add_argument("--pre", type=float, default=12.0)
     parser.add_argument("--post", type=float, default=5.0)
     parser.add_argument("--lick-free-window", type=float, default=2.0)
@@ -95,6 +133,7 @@ def main(argv=None) -> int:
         write_trials(destination / "behavior_trials.csv", trials)
         plot_rasters(destination / "lick_raster_by_position.png", source.stem, trials,
                      args.pre, args.post, args.lick_free_window)
+        plot_behavior_summary(destination / "behavior_summary.png", source.stem, trials)
         n_enl_trials = int(np.count_nonzero(trials.n_licks_enl))
         print(f"{source.name}: {reason}; quality_ok={ok}; licks={trials.lick_s.size}; "
               f"timer resets={trials.n_licks_enl.sum()} licks on {n_enl_trials}/{trials.n_trials} trials; "

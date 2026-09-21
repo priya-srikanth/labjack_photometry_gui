@@ -34,6 +34,16 @@ def test_response_window_is_capped_at_next_cue():
     assert trials.hit.tolist() == [False, True]
 
 
+def test_trial_stop_defines_response_window_with_nominal_duration_only_as_fallback():
+    trials = build_trials(events(
+        cue_s=np.array([10.0, 20.0]),
+        trial_stop_s=np.array([12.0, 23.0]),
+        lick_s=np.array([12.5, 22.5]),
+        reward_s=np.array([]),
+    ))
+    assert trials.hit.tolist() == [False, True]
+
+
 def test_quality_flags_collapsed_position_codes():
     trials = build_trials(events(cue_s=np.arange(6.) + 10,
                                 trial_start_s=np.arange(6.) + 9,

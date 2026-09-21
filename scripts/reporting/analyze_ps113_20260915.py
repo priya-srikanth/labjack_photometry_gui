@@ -10,6 +10,7 @@ from scipy.ndimage import gaussian_filter1d
 from scipy.signal import butter, sosfiltfilt, periodogram
 
 from labjack_photometry_gui.analysis.align import align_to_events
+from labjack_photometry_gui.analysis.behavior import build_trials
 from labjack_photometry_gui.analysis.carrier_qc import measure_carriers
 from labjack_photometry_gui.analysis.config import load_analysis_config
 from labjack_photometry_gui.analysis.events import extract_events
@@ -27,15 +28,15 @@ POWER_NOTE = "470 power approximately 70-80 uW"
 RATE = 200.0
 SMOOTH_MS = 40.0
 LOWPASS_HZ = 6.0
-RESPONSE_WINDOW_S = 3.5
+RESPONSE_WINDOW_S = 3.0
 
 
 def first_bout_licks(lick_s, quiet_s=1.0):
     return lick_s[np.r_[True, np.diff(lick_s) >= quiet_s]]
 
 
-def cue_outcomes(cue_s, lick_s, response_window_s=RESPONSE_WINDOW_S):
-    hit = np.array([np.any((lick_s >= cue) & (lick_s <= cue + response_window_s)) for cue in cue_s])
+def cue_outcomes(events):
+    hit = build_trials(events, response_window_s=RESPONSE_WINDOW_S).hit
     terminal_start = len(hit)
     while terminal_start > 0 and not hit[terminal_start - 1]:
         terminal_start -= 1
@@ -148,7 +149,7 @@ def main():
                "response_window_s": RESPONSE_WINDOW_S, "normalization": "rolling z-score after demodulation"}
     with PhotometrySession(SOURCE) as session:
         events = extract_events(session)
-        hit, terminal_no_lick = cue_outcomes(events.cue_s, events.lick_s)
+        hit, terminal_no_lick = cue_outcomes(events)
         metrics.update({"duration_s": float(session.duration_s), "n_cues": int(events.cue_s.size),
                         "n_cue_lick": int(hit.sum()), "n_cue_no_lick": int((~hit).sum()),
                         "n_terminal_no_lick": int(terminal_no_lick.sum()),
@@ -190,7 +191,7 @@ def main():
             idx = np.searchsorted(events.cue_s, aligned.event_s)
             aligned_hit = hit[idx]
             aligned_terminal = terminal_no_lick[idx]
-            for col, (mask, name, color) in enumerate(((aligned_hit, "lick in 3.5-s response window", "#2166ac"),
+            for col, (mask, name, color) in enumerate(((aligned_hit, "lick before trial stop", "#2166ac"),
                                                        (~aligned_hit, "no lick in response window", "#b2182b"))):
                 plot_mean(axes[row, col], aligned.time_s, aligned.values[mask], color, name)
                 style(axes[row, col])

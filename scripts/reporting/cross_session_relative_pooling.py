@@ -9,6 +9,7 @@ import numpy as np
 from scipy.ndimage import gaussian_filter1d
 
 from labjack_photometry_gui.analysis.align import align_to_events
+from labjack_photometry_gui.analysis.behavior import build_trials
 from labjack_photometry_gui.analysis.config import load_analysis_config
 from labjack_photometry_gui.analysis.events import extract_events
 from labjack_photometry_gui.analysis.geometry import SPOUT_LAYOUT, relative_labels
@@ -41,11 +42,26 @@ SELECTION_565 = (
     (Path(r"C:\Users\SabatiniLab\data\PS113_20260916_104941.h5"), "R_565_detect", "right", 331.0, "9/16 PS113 R565"),
     (Path(r"C:\Users\SabatiniLab\data\PS113_20260917_104145.h5"), "L_565_detect", "left", 331.0, "9/17 PS113 L565"),
     (Path(r"C:\Users\SabatiniLab\data\PS113_20260917_104145.h5"), "R_565_detect", "right", 331.0, "9/17 PS113 R565"),
+    (Path(r"C:\Users\SabatiniLab\data\PS113_20260921_105243.h5"), "L_565_detect", "left", 331.0, "9/21 PS113 L565"),
+    (Path(r"C:\Users\SabatiniLab\data\PS113_20260921_105243.h5"), "R_565_detect", "right", 331.0, "9/21 PS113 R565"),
 )
 
 
 def first_bout_licks(lick_s, quiet_s=1.0):
     return lick_s[np.r_[True, np.diff(lick_s) >= quiet_s]]
+
+
+def rewarded_trials_with_response_lick(events):
+    """Reward indices whose cue trial contains a lick in the response window."""
+    hit = build_trials(events, response_window_s=3.0).hit
+    keep = []
+    for reward_index, reward_s in enumerate(events.reward_s):
+        cue_index = np.searchsorted(events.cue_s, reward_s, side="right") - 1
+        if cue_index < 0 or reward_s - events.cue_s[cue_index] > 0.1:
+            continue
+        if hit[cue_index]:
+            keep.append(reward_index)
+    return np.asarray(keep, dtype=int)
 
 
 def load_entry(spec, event_kind, config, window=WINDOW):
@@ -59,9 +75,12 @@ def load_entry(spec, event_kind, config, window=WINDOW):
         elif event_kind == "first lick of bout":
             event_s = first_bout_licks(events.lick_s)
         elif event_kind == "reward":
-            event_s = events.reward_s
+            qualifying = rewarded_trials_with_response_lick(events)
+            event_s = events.reward_s[qualifying]
         elif event_kind == "first lick after reward":
-            event_s = events.first_lick_after_reward_s
+            qualifying = rewarded_trials_with_response_lick(events)
+            keep = np.isin(events.first_lick_reward_index, qualifying)
+            event_s = events.first_lick_after_reward_s[keep]
         else:
             raise ValueError(event_kind)
         aligned = align_to_events(trace.values, trace.time_s, event_s,
@@ -319,7 +338,7 @@ def main():
     config = replace(config, demodulation=replace(config.demodulation, target_rate_hz=RATE))
     families = [
         ("470 nm: selected high-quality sessions; PS111 R (9/11) + PS113 L (9/14-9/15)", SELECTION_470, ("all licks", "first lick of bout"), "470", (-1.0, 1.0)),
-        ("565 nm: PS113 L + R (9/11, 9/14-9/17)", SELECTION_565, ("reward", "first lick after reward"), "565", (-1.0, 3.5)),
+        ("565 nm: PS113 L + R (9/11, 9/14-9/17, 9/21)", SELECTION_565, ("reward", "first lick after reward"), "565", (-1.0, 3.5)),
     ]
     all_metrics = {"rate_hz": RATE, "smoothing_ms": SMOOTH_MS, "baseline_s": BASELINE, "groups": GROUPS}
     for title, specs, events, short, window in families:
