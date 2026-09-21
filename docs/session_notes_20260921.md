@@ -41,6 +41,6 @@ within a no-lick block and should not be interpreted as a causal reward effect.
 ## Pooling decision
 
 Both 565 channels pass QC and enter the selected lick-trial-only 565 pool.
-The 9/21 470 responses are retained in the per-session audit deck but excluded
-from the selected 470 pool because their lick-aligned responses are weak and
-oscillatory relative to the prespecified selected channels.
+Both 9/21 470 channels enter the all-lick 470 pool after review of the pooled
+traces. They remain excluded from the first-lick-of-bout pool, preserving the
+previously selected channels for that event definition.

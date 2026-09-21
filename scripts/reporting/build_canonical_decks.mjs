@@ -56,7 +56,7 @@ const sessions=[
   {label:"PS113 · 9/16",dir:"PS113_20260916_analysis",stem:"PS113_20260916_104941",note:"4504.8 s; 330 cues; 261 lick trials; 69 misses. Approximately 100 uW 470 excitation; 470 excluded from the selected pooled analysis."},
   {label:"PS113 · 9/17",dir:"PS113_20260917_analysis",stem:"PS113_20260917_104145",note:"5283.6 s; 480 cues; 333 lick trials; 147 misses. The 565 channels enter the selected pooled analysis. Both 9/17 470 channels remain excluded from pooling."},
   {label:"PS113 · 9/18",dir:"PS113_20260918_analysis",stem:"PS113_20260918_122842",note:"5979.2 s; 540 cues; 419 lick trials; 121 misses. Detector QC failed: normal DAC loopbacks but nearly absent 470 carriers and markedly reduced 565 carriers. Excluded from all pooled biological analyses."},
-  {label:"PS113 · 9/21",dir:"PS113_20260921_analysis",stem:"PS113_20260921_105243",note:"6497.0 s; 600 cues; 391 lick trials; 209 misses. Detector QC passed. Both 565 channels enter the selected pooled analysis; the weak 470 response remains outside the selected 470 pool."},
+  {label:"PS113 · 9/21",dir:"PS113_20260921_analysis",stem:"PS113_20260921_105243",note:"6497.0 s; 600 cues; 391 lick trials; 209 misses. Detector QC passed. Both 565 channels enter the selected pooled analysis. Both 470 channels enter the all-lick pool only."},
 ];
 
 const per=await baseDeck("Photometry: standardized per-session analyses","Consistent 200-Hz demodulated, rolling-z analyses for every recording; session-specific quality caveats retained");
@@ -90,10 +90,10 @@ for (const day of ["915","916","917","918","921"]) {
 }
 
 const pooled=await baseDeck("Photometry: selected pooled analyses","Duration-weighted descriptive pools using prespecified high-quality channels and sessions");
-await sectionSlide(pooled,"Selection rule","470 pool: PS111 R470 9/11 and PS113 L470 9/14-9/15. The 9/16, 9/17 and 9/21 470 signals appear only in the per-session deck. The 565 pool includes both hemispheres from PS113-2 9/11 and PS113 9/14-9/17 and 9/21; 9/18 failed detector QC.");
+await sectionSlide(pooled,"Selection rule","470 all-lick pool: PS111 R470 9/11, PS113 L470 9/14-9/15, and PS113 L470 + R470 9/21. The first-lick-of-bout pool retains the original 9/11 and 9/14-9/15 channels. The 565 pool includes both hemispheres from PS113-2 9/11 and PS113 9/14-9/17 and 9/21; 9/18 failed detector QC.");
 const pd=path.join(root,"cross_session_20260914");
-await figureSlide(pooled,"Selected 470-nm lick responses","All positions; all licks and first lick of bout",path.join(pd,"combined_470_all_positions.png"),"Duration-weighted descriptive mean. 9/16 470 excluded by data-quality decision.");
-await figureSlide(pooled,"Selected 470-nm responses by relative position","Near/far ipsi, middle and contra",path.join(pd,"combined_470_relative_positions.png"),"Positions recoded relative to recorded hemisphere. 9/16 470 excluded.");
+await figureSlide(pooled,"Selected 470-nm lick responses","All positions; 9/21 L + R included for all licks only",path.join(pd,"combined_470_all_positions.png"),"Duration-weighted descriptive mean. The all-lick pool includes 9/21 L470 and R470. The first-lick-of-bout pool retains the original selected channels.");
+await figureSlide(pooled,"Selected 470-nm responses by relative position","Near/far ipsi, middle and contra; event-specific channel selection",path.join(pd,"combined_470_relative_positions.png"),"Positions recoded relative to recorded hemisphere. The all-lick row includes 9/21 L470 and R470; the first-bout row does not.");
 await figureSlide(pooled,"Selected 565-nm reward responses","All positions; reward and first lick after reward",path.join(pd,"combined_565_all_positions.png"),"L565 and R565 from 9/11, 9/14-9/17 and 9/21; duration weighted. The 9/18 session failed detector QC.");
 await figureSlide(pooled,"Selected 565-nm responses by hemisphere and physical position","L and R hemispheres retained separately across near/far L, center and R positions",path.join(pd,"combined_565_physical_positions_by_hemisphere.png"),"Rows preserve recorded hemisphere and event definition. Columns retain physical spout position without ipsi/contra recoding. L/R y-scales match within reward and first-lick event families. Sessions 9/11, 9/14-9/17 and 9/21; duration weighted.");
 await figureSlide(pooled,"Selected 565-nm responses by relative position","Near/far ipsi, middle and contra",path.join(pd,"combined_565_relative_positions.png"),"Positions recoded relative to hemisphere; duration weighted.");
@@ -102,7 +102,7 @@ await figureSlide(pooled,"565 response after licking stops","No systematic decli
 await figureSlide(pooled,"Early and late terminal misses differ across sessions","First 10 versus last 10 misses in each qualifying terminal block",path.join(noLickDir,"pooled_565_terminal_no_lick_first10_vs_last10.png"),"L/R averaged within trial, then the first and last ten terminal misses compared within each session. 9/15 and 9/16 increased by 0.10 and 0.21 z; 9/17 decreased by 0.10 z. The directions are not consistent across sessions. 9/21 has only nine complete terminal-block windows, so its separate middle-versus-end analysis is used instead.");
 
 async function save(p,name) {
-  const final=path.join(out,name); const stage=path.join(build,`.codex-finalizer-${path.parse(name).name}-trialstop-countfix`);
+  const final=path.join(out,name); const stage=path.join(build,`.codex-finalizer-${path.parse(name).name}-0921-alllick`);
   await fs.mkdir(stage,{recursive:true});
   const candidate=path.join(stage,"candidate.pptx");
   await (await PresentationFile.exportPptx(p)).save(candidate);

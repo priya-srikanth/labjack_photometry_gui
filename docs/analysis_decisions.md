@@ -482,7 +482,10 @@ This restriction makes the pooled reward and first-lick figures describe the
 same behavioral trial population. Miss trials remain available in explicit
 lick-versus-miss and no-lick analyses; they do not silently dilute the default
 565 pool. Both 9/21 565 channels pass carrier QC and join this pool. The 9/18
-channels remain excluded, and the 9/21 470 channels remain per-session only.
+channels remain excluded. On 2026-09-21, both 9/21 470 channels were added to
+the all-lick pool after direct review. They remain excluded from the first-
+lick-of-bout pool. The 470 selection is therefore event-specific rather than a
+single channel list shared across both lick definitions.
 
 ## Daily photometry/behavior ingest and camera QC (2026-09-21)
 
