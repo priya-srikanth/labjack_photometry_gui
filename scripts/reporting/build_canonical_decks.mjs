@@ -85,7 +85,7 @@ for (const x of sessions) {
 }
 
 const noLickDir=path.join(root,"565_no_lick_over_time");
-for (const day of ["915","916","917","918","921"]) {
+for (const day of ["915","916","917","918","921","922"]) {
   const failed=day==="918";
   await figureSlide(per,`PS113 ${day.slice(0,1)}/${day.slice(1)}: no-lick 565 response over time`,
     "Amplitude versus session time and minutes since the last detected lick",
@@ -103,11 +103,11 @@ await figureSlide(pooled,"Selected 565-nm reward responses","All positions; rewa
 await figureSlide(pooled,"Selected 565-nm responses by hemisphere and physical position","L and R hemispheres retained separately across near/far L, center and R positions",path.join(pd,"combined_565_physical_positions_by_hemisphere.png"),"Rows preserve recorded hemisphere and event definition. Columns retain physical spout position without ipsi/contra recoding. L/R y-scales match within reward and first-lick event families. Sessions 9/11, 9/14-9/17 and 9/21; duration weighted.");
 await figureSlide(pooled,"Selected 565-nm responses by relative position","Near/far ipsi, middle and contra",path.join(pd,"combined_565_relative_positions.png"),"Positions recoded relative to hemisphere; duration weighted.");
 await figureSlide(pooled,"Trial-stop / spout-retraction response across sessions","565 rebound compared with simultaneous 470 artifact-control channels",path.join(root,"retraction_across_sessions","470_565_stop_aligned_artifact_control.png"),"Cross-session trial-stop alignment. Treat as a candidate biological response while retaining channel-specific motion/optical-coupling caveats.");
-await figureSlide(pooled,"565 response after licking stops","No systematic decline across valid terminal no-lick blocks",path.join(noLickDir,"pooled_565_terminal_no_lick_response_over_time.png"),"L/R averaged within session, then sessions weighted equally in two-minute bins. Included: 9/15-9/17. The mean session slope is -0.008 z/min (descriptive p=0.82, n=3). The 9/18 amplifier-failure session is excluded.");
-await figureSlide(pooled,"Early and late terminal misses differ across sessions","First 10 versus last 10 misses in each qualifying terminal block",path.join(noLickDir,"pooled_565_terminal_no_lick_first10_vs_last10.png"),"L/R averaged within trial, then the first and last ten terminal misses compared within each session. 9/15 and 9/16 increased by 0.10 and 0.21 z; 9/17 decreased by 0.10 z. The directions are not consistent across sessions. 9/21 has only nine complete terminal-block windows, so its separate middle-versus-end analysis is used instead.");
+await figureSlide(pooled,"565 response after licking stops","No systematic decline across valid terminal no-lick blocks",path.join(noLickDir,"pooled_565_terminal_no_lick_response_over_time.png"),"L/R averaged within session, then sessions weighted equally in two-minute bins. Included: 9/15-9/17 and 9/22. The 9/18 amplifier-failure session is excluded; 9/21 has only nine complete terminal-block windows.");
+await figureSlide(pooled,"Early and late terminal misses differ across sessions","First 10 versus last 10 misses in each qualifying terminal block",path.join(noLickDir,"pooled_565_terminal_no_lick_first10_vs_last10.png"),"L/R averaged within trial, then the first and last ten terminal misses compared within each session. Changes were +0.10 z on 9/15, +0.21 z on 9/16, -0.10 z on 9/17, and +0.31 z on 9/22. Thus 9/22 increased rather than declined. 9/21 has only nine complete terminal-block windows.");
 
 async function save(p,name) {
-  const final=path.join(out,name); const stage=path.join(build,`.codex-finalizer-${path.parse(name).name}-0921-alllick`);
+  const final=path.join(out,name); const stage=path.join(build,`.codex-finalizer-${path.parse(name).name}-0922-nolick`);
   await fs.mkdir(stage,{recursive:true});
   const candidate=path.join(stage,"candidate.pptx");
   await (await PresentationFile.exportPptx(p)).save(candidate);

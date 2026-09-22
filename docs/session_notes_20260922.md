@@ -33,6 +33,16 @@ and 0.508 z at 115 ms. These miss responses remain descriptive and should not
 be interpreted as dopamine-specific without the existing behavioral and
 optical caveats.
 
+Within the terminal no-lick block, response amplitude did not progressively
+decrease with time since the last lick. Slopes were +0.0416 z/min for L565
+(`p=0.117`) and +0.0283 z/min for R565 (`p=0.340`). After averaging L/R within
+trial, the last 10 terminal misses exceeded the first 10 by 0.306 z (0.344
+versus 0.038 z). The overall terminal response is lower than the strongest
+prior session, but it increases within 9/22 rather than fading monotonically.
+The L/R-averaged whole-block mean was 0.190 z, compared with 0.154 on 9/15,
+0.143 on 9/16, and 0.235 on 9/17. Thus 9/22 is lower than 9/17 but not lower
+than every prior session under the standardized 0.05-0.75-s response metric.
+
 ## 470 lick responses
 
 L470 showed a small delayed candidate response: all-lick peak 0.091 z at

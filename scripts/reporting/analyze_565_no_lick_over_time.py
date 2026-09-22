@@ -25,7 +25,8 @@ SESSIONS = (
     (Path(r"C:\Users\SabatiniLab\data\PS113_20260916_104941.h5"), "9/16"),
     (Path(r"C:\Users\SabatiniLab\data\PS113_20260917_104145.h5"), "9/17"),
     (Path(r"C:\Users\SabatiniLab\data\PS113_20260918_122842.h5"), "9/18"),
-    (Path(r"C:\Users\SabatiniLab\data\PS113_20260921_105243.h5"), "9/21"),
+    (Path(r"\\research.files.med.harvard.edu\Neurobio\MICROSCOPE\Priya\Photometry\data\PS113_20260921_105243.h5"), "9/21"),
+    (Path(r"\\research.files.med.harvard.edu\Neurobio\MICROSCOPE\Priya\Photometry\data\PS113_20260922_112325.h5"), "9/22"),
 )
 CHANNELS = ("L_565_detect", "R_565_detect")
 RESPONSE_WINDOW = (0.05, 0.75)
@@ -136,6 +137,7 @@ def main():
                 entry = {"n_no_lick": int(response.size), "n_terminal": int(is_terminal.sum()),
                          "carrier_amplitude_v": float(amp.get(channel, np.nan)),
                          "qc_included": bool(valid_qc),
+                         "terminal_mean_z": float(np.nanmean(response[is_terminal])) if is_terminal.any() else None,
                          "terminal_slope_z_per_min": float(fit.slope) if fit else None,
                          "terminal_slope_p": float(fit.pvalue) if fit else None}
                 session_results[label]["channels"][channel] = entry

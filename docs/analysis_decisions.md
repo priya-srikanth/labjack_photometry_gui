@@ -525,3 +525,11 @@ retains the reasons for caution: structured 5-13-Hz oscillation persists around
 licks, R470 peaks at or near time zero, and L470 response size varies strongly
 with spout position. Inclusion supports direct cross-session comparison; it
 does not establish that either 9/22 470 trace is fluorophore-specific.
+
+The longitudinal no-lick analysis includes 9/22 because both 565 channels pass
+QC and the terminal block has 75 complete windows. Neither channel shows a
+significant negative slope with minutes since the last lick. The L/R-averaged
+last 10 terminal misses are 0.306 z higher than the first 10. The absolute
+9/22 no-lick response is lower than the strongest earlier sessions, while the
+within-session trajectory argues against progressive attenuation after licking
+stops.
