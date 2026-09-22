@@ -14,6 +14,7 @@ animal, optical path, amplifier setting, or acquisition configuration.
 | 2026-09-17 | `session_notes_20260917.md` | Latest behavior summary, 565 inclusion and 470 exclusion, physical/relative position reporting, and matched hemisphere scales. |
 | 2026-09-18 | `session_notes_20260918.md` | Normal DAC loopbacks but failed detector operating points and near-absent carriers; all photometry channels excluded from pooling. |
 | 2026-09-21 | `session_notes_20260921.md` | Detector recovery, middle/end no-lick epochs, actual reward-TTL comparison, and inclusion of 565 only in the selected pool. |
+| 2026-09-22 | `session_notes_20260922.md` | Clean acquisition and camera QC, terminal no-lick block, inclusion of both 565 channels, and asymmetric/artifact-sensitive 470 findings. |
 
 `analysis_decisions.md` is the authoritative cross-session rationale. It
 defines demodulation and normalization order, event semantics, session and
@@ -30,6 +31,10 @@ silently override the other.
 - 565: PS113-2 L565/R565 on 9/11 and PS113 L565/R565 on 9/14 through 9/17.
 - 9/16 and 9/17 470 remain in the per-session audit deck but are excluded from
   the selected pooled deck.
+- On 9/22 both 565 channels pass QC and enter lick-trial-only 565 pools. The
+  470 session remains in the per-session audit; only L470 all-lick is a
+  candidate for an explicitly channel-selected exploratory pool, while R470
+  and first-lick event families are excluded.
 - Pooling is descriptive and session-duration weighted. Event-level traces are
   averaged within their session/channel before sessions are combined.
 
