@@ -533,3 +533,11 @@ last 10 terminal misses are 0.306 z higher than the first 10. The absolute
 9/22 no-lick response is lower than the strongest earlier sessions, while the
 within-session trajectory argues against progressive attenuation after licking
 stops.
+
+The trial-stop/spout-retraction analysis now includes 9/21 and 9/22 in both
+565 channels and in the simultaneous 470 artifact-control comparison. R565
+retains an upward post-stop rebound on both days (+0.116 z on 9/21 and +0.135 z
+on 9/22 relative to the immediately preceding 200 ms). L565 is essentially
+flat at stop on both days (+0.007 and 0.000 z). The 470 channels do not show a
+comparably consistent cross-session rebound, but structured noise and optical
+coupling remain reasons to describe the R565 feature as a candidate response.

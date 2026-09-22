@@ -25,6 +25,8 @@ SESSIONS = (
     (Path(r"C:\Users\SabatiniLab\data\PS113_20260915_110019.h5"), "9/15 PS113"),
     (Path(r"C:\Users\SabatiniLab\data\PS113_20260916_104941.h5"), "9/16 PS113"),
     (Path(r"C:\Users\SabatiniLab\data\PS113_20260917_104145.h5"), "9/17 PS113"),
+    (Path(r"\\research.files.med.harvard.edu\Neurobio\MICROSCOPE\Priya\Photometry\data\PS113_20260921_105243.h5"), "9/21 PS113"),
+    (Path(r"\\research.files.med.harvard.edu\Neurobio\MICROSCOPE\Priya\Photometry\data\PS113_20260922_112325.h5"), "9/22 PS113"),
 )
 GROUPS = ("near ipsi", "near mid", "near contra", "far ipsi", "far mid", "far contra")
 COLORS = ("#2166ac", "#67a9cf", "#d1e5f0", "#ef8a62", "#b2182b", "#7f0000")
@@ -222,8 +224,7 @@ def main():
     controls = []
     for path, session_label in SESSIONS:
         # The 9/17 470 channels are retained in the per-session deck only.
-        # Update the pooled trial-stop figure with 9/17 565 while preserving
-        # the prespecified 470 control-session selection through 9/16.
+        # Later reviewed 9/21 and 9/22 channels enter the control comparison.
         if path.stem == "PS113_20260917_104145":
             continue
         with PhotometrySession(path) as session:
