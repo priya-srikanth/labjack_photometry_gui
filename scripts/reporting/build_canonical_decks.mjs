@@ -27,7 +27,7 @@ async function baseDeck(title, subtitle) {
   s.shapes.add({geometry:"rect",position:{left:0,top:0,width:1280,height:18},fill:navy,line:{fill:"none",width:0}});
   addText(s,title,{left:72,top:190,width:1136,height:105},{fontSize:38,bold:true,color:navy,alignment:"center"});
   addText(s,subtitle,{left:145,top:320,width:990,height:90},{fontSize:20,color:muted,alignment:"center"});
-  addText(s,"Analysis through 21 September 2026",{left:250,top:585,width:780,height:32},{fontSize:14,color:muted,alignment:"center"});
+  addText(s,"Analysis through 22 September 2026",{left:250,top:585,width:780,height:32},{fontSize:14,color:muted,alignment:"center"});
   return p;
 }
 
@@ -57,6 +57,7 @@ const sessions=[
   {label:"PS113 · 9/17",dir:"PS113_20260917_analysis",stem:"PS113_20260917_104145",note:"5283.6 s; 480 cues; 333 lick trials; 147 misses. The 565 channels enter the selected pooled analysis. Both 9/17 470 channels remain excluded from pooling."},
   {label:"PS113 · 9/18",dir:"PS113_20260918_analysis",stem:"PS113_20260918_122842",note:"5979.2 s; 540 cues; 419 lick trials; 121 misses. Detector QC failed: normal DAC loopbacks but nearly absent 470 carriers and markedly reduced 565 carriers. Excluded from all pooled biological analyses."},
   {label:"PS113 · 9/21",dir:"PS113_20260921_analysis",stem:"PS113_20260921_105243",note:"6497.0 s; 600 cues; 391 lick trials; 209 misses. Detector QC passed. Both 565 channels enter the selected pooled analysis. Both 470 channels enter the all-lick pool only."},
+  {label:"PS113 · 9/22",dir:"PS113_20260922_analysis",stem:"PS113_20260922_112325",note:"4528.4 s; 450 cues; 346 lick trials; 104 misses. Detector QC passed. Both 565 channels and both 470 channels enter the descriptive pooled analyses; 470 retains oscillation and position-dependence caveats."},
 ];
 
 const per=await baseDeck("Photometry: standardized per-session analyses","Consistent 200-Hz demodulated, rolling-z analyses for every recording; session-specific quality caveats retained");
@@ -77,6 +78,10 @@ for (const x of sessions) {
     await figureSlide(per,"PS113 9/21: no-lick cue response by reward delivery","Actual reward TTL distinguishes rewarded and unrewarded no-lick trials",path.join(d,`${s}_565_cue_reward_comparison.png`),"Reward status comes from the recorded TTL between each cue and the next cue. The recorded status agrees with the preceding-six-trial lick rule on 598 of 600 trials.");
     await figureSlide(per,"PS113 9/21: cue outcome and reward timeline","Middle and end no-lick epochs with actual reward state",path.join(d,`${s}_cue_state_timeline.png`),"The main middle no-lick block spans trials 157-283. The late epoch spans trials 544-600 and contains one isolated lick trial at 589.");
   }
+  if (x.stem === "PS113_20260922_112325") {
+    await figureSlide(per,"PS113 9/22: terminal no-lick cue response","Terminal miss block begins at trial 374",path.join(d,`${s}_565_terminal_no_lick_overlay.png`),"Complete photometry windows retain 75 terminal misses. Miss trials remain separate from the default lick-trial 565 pool.");
+    await figureSlide(per,"PS113 9/22: cue outcome timeline","Lick and no-lick trials across the session",path.join(d,`${s}_cue_outcome_timeline.png`),"The terminal no-lick block begins at trial 374. Trial_stop defines the response-window boundary.");
+  }
 }
 
 const noLickDir=path.join(root,"565_no_lick_over_time");
@@ -90,11 +95,11 @@ for (const day of ["915","916","917","918","921"]) {
 }
 
 const pooled=await baseDeck("Photometry: selected pooled analyses","Duration-weighted descriptive pools using prespecified high-quality channels and sessions");
-await sectionSlide(pooled,"Selection rule","470 all-lick pool: PS111 R470 9/11, PS113 L470 9/14-9/15, and PS113 L470 + R470 9/21. The first-lick-of-bout pool retains the original 9/11 and 9/14-9/15 channels. The 565 pool includes both hemispheres from PS113-2 9/11 and PS113 9/14-9/17 and 9/21; 9/18 failed detector QC.");
+await sectionSlide(pooled,"Selection rule","470 all-lick pool: PS111 R470 9/11, PS113 L470 9/14-9/15, and PS113 L470 + R470 9/21-9/22. The first-lick-of-bout pool adds 9/22 L470 + R470 to the original selected channels. The 565 pool includes both hemispheres from PS113-2 9/11 and PS113 9/14-9/17 and 9/21-9/22; 9/18 failed detector QC.");
 const pd=path.join(root,"cross_session_20260914");
-await figureSlide(pooled,"Selected 470-nm lick responses","All positions; 9/21 L + R included for all licks only",path.join(pd,"combined_470_all_positions.png"),"Duration-weighted descriptive mean. The all-lick pool includes 9/21 L470 and R470. The first-lick-of-bout pool retains the original selected channels.");
-await figureSlide(pooled,"Selected 470-nm responses by relative position","Near/far ipsi, middle and contra; event-specific channel selection",path.join(pd,"combined_470_relative_positions.png"),"Positions recoded relative to recorded hemisphere. The all-lick row includes 9/21 L470 and R470; the first-bout row does not.");
-await figureSlide(pooled,"Selected 565-nm reward responses","All positions; reward and first lick after reward",path.join(pd,"combined_565_all_positions.png"),"L565 and R565 from 9/11, 9/14-9/17 and 9/21; duration weighted. The 9/18 session failed detector QC.");
+await figureSlide(pooled,"Selected 470-nm lick responses","All positions; 9/22 L + R included for all licks and first lick of bout",path.join(pd,"combined_470_all_positions.png"),"Duration-weighted descriptive mean. The all-lick pool includes 9/21 and 9/22 L470 and R470. The first-lick-of-bout pool adds 9/22 L470 and R470; structured oscillation and position dependence remain caveats.");
+await figureSlide(pooled,"Selected 470-nm responses by relative position","Near/far ipsi, middle and contra; event-specific channel selection",path.join(pd,"combined_470_relative_positions.png"),"Positions recoded relative to recorded hemisphere. The all-lick row includes 9/21 and 9/22 L470 and R470; the first-bout row adds 9/22 L470 and R470.");
+await figureSlide(pooled,"Selected 565-nm reward responses","All positions; reward and first lick after reward",path.join(pd,"combined_565_all_positions.png"),"L565 and R565 from 9/11, 9/14-9/17 and 9/21-9/22; duration weighted. The 9/18 session failed detector QC. Only trials with consummatory licks enter the default pool.");
 await figureSlide(pooled,"Selected 565-nm responses by hemisphere and physical position","L and R hemispheres retained separately across near/far L, center and R positions",path.join(pd,"combined_565_physical_positions_by_hemisphere.png"),"Rows preserve recorded hemisphere and event definition. Columns retain physical spout position without ipsi/contra recoding. L/R y-scales match within reward and first-lick event families. Sessions 9/11, 9/14-9/17 and 9/21; duration weighted.");
 await figureSlide(pooled,"Selected 565-nm responses by relative position","Near/far ipsi, middle and contra",path.join(pd,"combined_565_relative_positions.png"),"Positions recoded relative to hemisphere; duration weighted.");
 await figureSlide(pooled,"Trial-stop / spout-retraction response across sessions","565 rebound compared with simultaneous 470 artifact-control channels",path.join(root,"retraction_across_sessions","470_565_stop_aligned_artifact_control.png"),"Cross-session trial-stop alignment. Treat as a candidate biological response while retaining channel-specific motion/optical-coupling caveats.");
@@ -113,5 +118,5 @@ async function save(p,name) {
   console.log(JSON.stringify({final,slides:p.slides.items.length}));
 }
 
-await save(per,"photometry_per_session_standardized_through_20260921.pptx");
-await save(pooled,"photometry_pooled_selected_through_20260921.pptx");
+await save(per,"photometry_per_session_standardized_through_20260922.pptx");
+await save(pooled,"photometry_pooled_selected_through_20260922.pptx");

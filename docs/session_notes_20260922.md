@@ -48,9 +48,8 @@ for the selected pool without stronger artifact validation.
 
 Both 565 channels enter the selected lick-trial-only 565 pool. Miss and
 terminal-miss trials remain separate and do not enter the default or
-position-specific 565 pool. Both 470 channels remain visible in the
-per-session audit. L470 all-lick may enter a channel-selected exploratory pool
-with explicit position/artifact caveats; R470 and both first-lick event
-families are excluded. If a pooled comparison requires matched L/R session
-pairs, exclude the complete 9/22 470 session rather than treating L and R as a
-matched pair.
+position-specific 565 pool. After review, both 9/22 470 channels were added to
+the descriptive all-lick and first-lick-of-bout pools at the user's direction.
+The deck retains the structured-oscillation and position-dependence caveats;
+this inclusion records the requested comparison and does not establish signal
+specificity.

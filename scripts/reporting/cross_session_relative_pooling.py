@@ -34,9 +34,18 @@ SELECTION_470 = (
 ARCHIVED_0921 = Path(
     r"\\research.files.med.harvard.edu\Neurobio\MICROSCOPE\Priya\Photometry\data\PS113_20260921_105243.h5"
 )
+ARCHIVED_0922 = Path(
+    r"\\research.files.med.harvard.edu\Neurobio\MICROSCOPE\Priya\Photometry\data\PS113_20260922_112325.h5"
+)
 SELECTION_470_ALL_LICKS = SELECTION_470 + (
     (ARCHIVED_0921, "L_470_detect", "left", 211.0, "9/21 PS113 L470"),
     (ARCHIVED_0921, "R_470_detect", "right", 211.0, "9/21 PS113 R470"),
+    (ARCHIVED_0922, "L_470_detect", "left", 211.0, "9/22 PS113 L470"),
+    (ARCHIVED_0922, "R_470_detect", "right", 211.0, "9/22 PS113 R470"),
+)
+SELECTION_470_FIRST_BOUT = SELECTION_470 + (
+    (ARCHIVED_0922, "L_470_detect", "left", 211.0, "9/22 PS113 L470"),
+    (ARCHIVED_0922, "R_470_detect", "right", 211.0, "9/22 PS113 R470"),
 )
 SELECTION_565 = (
     (Path(r"C:\Users\SabatiniLab\data\PS113_2_20260911_192740.h5"), "L_565_detect", "left", 331.0, "9/11 PS113-2 L565"),
@@ -51,6 +60,8 @@ SELECTION_565 = (
     (Path(r"C:\Users\SabatiniLab\data\PS113_20260917_104145.h5"), "R_565_detect", "right", 331.0, "9/17 PS113 R565"),
     (ARCHIVED_0921, "L_565_detect", "left", 331.0, "9/21 PS113 L565"),
     (ARCHIVED_0921, "R_565_detect", "right", 331.0, "9/21 PS113 R565"),
+    (ARCHIVED_0922, "L_565_detect", "left", 331.0, "9/22 PS113 L565"),
+    (ARCHIVED_0922, "R_565_detect", "right", 331.0, "9/22 PS113 R565"),
 )
 
 
@@ -76,13 +87,13 @@ def load_entry(spec, event_kind, config, window=WINDOW):
     cache = ROOT / "derived_cache" / path.stem
     with PhotometrySession(path) as session:
         events = extract_events(session)
-        if path == ARCHIVED_0921:
+        if path in (ARCHIVED_0921, ARCHIVED_0922):
             # The raw file is archived on the server, but demodulation was
             # completed before local cleanup. Reuse that source-validated
             # envelope so adding an event family does not re-read gigabytes.
             prior_dirs = (
                 ROOT / "derived_cache" / path.stem,
-                ROOT.parent / "PS113_20260921_analysis" / "derived_cache_200Hz",
+                ROOT.parent / ("PS113_20260921_analysis" if path == ARCHIVED_0921 else "PS113_20260922_analysis") / "derived_cache_200Hz",
             )
             saved_path = next(
                 candidate for directory in prior_dirs
@@ -367,14 +378,16 @@ def main():
     config = load_analysis_config(CONFIG)
     config = replace(config, demodulation=replace(config.demodulation, target_rate_hz=RATE))
     families = [
-        ("470 nm: event-specific selected channels; 9/21 L+R added to all-lick pool only", SELECTION_470, ("all licks", "first lick of bout"), "470", (-1.0, 1.0)),
-        ("565 nm: PS113 L + R (9/11, 9/14-9/17, 9/21)", SELECTION_565, ("reward", "first lick after reward"), "565", (-1.0, 3.5)),
+        ("470 nm: event-specific selected channels; 9/21 L+R all-lick and 9/22 L+R added", SELECTION_470, ("all licks", "first lick of bout"), "470", (-1.0, 1.0)),
+        ("565 nm: PS113 L + R (9/11, 9/14-9/17, 9/21-9/22)", SELECTION_565, ("reward", "first lick after reward"), "565", (-1.0, 3.5)),
     ]
     all_metrics = {"rate_hz": RATE, "smoothing_ms": SMOOTH_MS, "baseline_s": BASELINE, "groups": GROUPS}
     for title, specs, events, short, window in families:
         loaded = {
             event: [load_entry(spec, event, config, window) for spec in
-                    (SELECTION_470_ALL_LICKS if short == "470" and event == "all licks" else specs)]
+                    (SELECTION_470_ALL_LICKS if short == "470" and event == "all licks"
+                     else SELECTION_470_FIRST_BOUT if short == "470" and event == "first lick of bout"
+                     else specs)]
             for event in events
         }
         all_metrics[short] = {

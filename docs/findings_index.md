@@ -27,14 +27,16 @@ silently override the other.
 
 ## Current selected pools
 
-- 470: PS111 R470 on 9/11 and PS113 L470 on 9/14 and 9/15.
-- 565: PS113-2 L565/R565 on 9/11 and PS113 L565/R565 on 9/14 through 9/17.
+- 470 all-lick: PS111 R470 on 9/11, PS113 L470 on 9/14 and 9/15,
+  PS113 L470/R470 on 9/21 and 9/22. The first-lick-of-bout pool includes the
+  original 9/11 and 9/14-9/15 channels plus PS113 L470/R470 on 9/22.
+- 565: PS113-2 L565/R565 on 9/11 and PS113 L565/R565 on 9/14 through 9/17
+  and 9/21-9/22. Only lick trials enter the default and position pools.
 - 9/16 and 9/17 470 remain in the per-session audit deck but are excluded from
   the selected pooled deck.
-- On 9/22 both 565 channels pass QC and enter lick-trial-only 565 pools. The
-  470 session remains in the per-session audit; only L470 all-lick is a
-  candidate for an explicitly channel-selected exploratory pool, while R470
-  and first-lick event families are excluded.
+- On 9/22 both 565 channels pass QC. Both 470 channels enter the requested
+  descriptive pools, with structured-oscillation and position-dependence
+  caveats retained.
 - Pooling is descriptive and session-duration weighted. Event-level traces are
   averaged within their session/channel before sessions are combined.
 

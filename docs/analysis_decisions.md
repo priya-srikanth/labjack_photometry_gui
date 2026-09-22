@@ -510,3 +510,18 @@ and -0.10 z on 9/17, so prior sessions do not show a consistent early-to-late
 direction. The 9/21 terminal contiguous block has only nine complete windows;
 its prespecified middle-versus-end epoch plot remains the appropriate within-
 session comparison.
+
+## 2026-09-22 pooled inclusion and deck update
+
+Both 9/22 565 channels pass carrier and operating-point QC and enter the
+lick-trial-only reward and first-lick-after-reward pools. Miss trials remain in
+explicit miss analyses and do not enter the default or position-specific 565
+pools.
+
+Both 9/22 470 channels enter the descriptive all-lick and first-lick-of-bout
+pools at the user's direction. This overrides the initial conservative
+recommendation to restrict 9/22 pooling to L470 all-lick. The pooled deck
+retains the reasons for caution: structured 5-13-Hz oscillation persists around
+licks, R470 peaks at or near time zero, and L470 response size varies strongly
+with spout position. Inclusion supports direct cross-session comparison; it
+does not establish that either 9/22 470 trace is fluorophore-specific.
