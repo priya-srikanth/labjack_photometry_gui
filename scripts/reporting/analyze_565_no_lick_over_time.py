@@ -27,9 +27,11 @@ SESSIONS = (
     (Path(r"C:\Users\SabatiniLab\data\PS113_20260918_122842.h5"), "9/18"),
     (Path(r"\\research.files.med.harvard.edu\Neurobio\MICROSCOPE\Priya\Photometry\data\PS113_20260921_105243.h5"), "9/21"),
     (Path(r"\\research.files.med.harvard.edu\Neurobio\MICROSCOPE\Priya\Photometry\data\PS113_20260922_112325.h5"), "9/22"),
+    (Path(r"\\research.files.med.harvard.edu\Neurobio\MICROSCOPE\Priya\Photometry\data\PS113_20260924_105420.h5"), "9/24"),
 )
 CHANNELS = ("L_565_detect", "R_565_detect")
 RESPONSE_WINDOW = (0.05, 0.75)
+CUE_PEAK_WINDOW = (0.05, 0.30)
 BASELINE_WINDOW = (-1.0, -0.5)
 MIN_VALID_CARRIER_V = 0.03
 
@@ -91,10 +93,14 @@ def main():
                 response_mask = ((aligned.time_s >= RESPONSE_WINDOW[0]) &
                                  (aligned.time_s <= RESPONSE_WINDOW[1]))
                 amplitude = np.nanmean(aligned.values[:, response_mask], axis=1)
+                cue_peak_mask = ((aligned.time_s >= CUE_PEAK_WINDOW[0]) &
+                                 (aligned.time_s <= CUE_PEAK_WINDOW[1]))
+                cue_peak = np.nanmean(aligned.values[:, cue_peak_mask], axis=1)
                 no_lick = ~hit[original]
                 order = np.argsort(aligned.event_s[no_lick])
                 event_s = aligned.event_s[no_lick][order]
                 response = amplitude[no_lick][order]
+                peak_response = cue_peak[no_lick][order]
                 elapsed = since_lick[original][no_lick][order] / 60.0
                 is_terminal = terminal[original][no_lick][order]
 
@@ -141,11 +147,17 @@ def main():
                          "terminal_slope_z_per_min": float(fit.slope) if fit else None,
                          "terminal_slope_p": float(fit.pvalue) if fit else None}
                 session_results[label]["channels"][channel] = entry
-                for x, y, term, session_time in zip(elapsed, response, is_terminal, event_s / 60):
+                terminal_rank = np.full(response.size, np.nan)
+                terminal_indices = np.flatnonzero(is_terminal)
+                if terminal_indices.size:
+                    terminal_rank[terminal_indices] = np.arange(terminal_indices.size)
+                for x, y, peak, term, session_time, rank in zip(
+                        elapsed, response, peak_response, is_terminal, event_s / 60, terminal_rank):
                     records.append({"session": label, "channel": channel,
                                     "minutes_since_last_lick": float(x),
                                     "session_minute": float(session_time),
-                                    "response_z": float(y), "terminal": bool(term),
+                                    "response_z": float(y), "cue_peak_z": float(peak),
+                                    "terminal_rank": float(rank), "terminal": bool(term),
                                     "qc_included": bool(valid_qc)})
 
             status = "included in pooled analysis" if valid_qc else "QC FAILEDâ€”excluded from pool"
@@ -201,6 +213,87 @@ def main():
                 bbox_inches="tight")
     plt.close(fig)
 
+    # Narrow cue response versus normalized progress through each terminal
+    # block. Pool sessions equally within progress bins and preserve the two
+    # detector hemispheres instead of averaging them together.
+    progress_edges = np.linspace(0.0, 1.0, 6)
+    progress_centers = (progress_edges[:-1] + progress_edges[1:]) / 2
+    fig, axes = plt.subplots(1, 2, figsize=(12.5, 5.4), sharey=True)
+    narrow_summary = {}
+    for ax, channel in zip(axes, CHANNELS):
+        session_curves = []
+        narrow_summary[channel] = {}
+        for label in valid_labels:
+            rows = sorted(
+                (r for r in records if r["session"] == label and r["channel"] == channel
+                 and r["terminal"] and r["qc_included"]),
+                key=lambda r: r["terminal_rank"],
+            )
+            if len(rows) < 10:
+                continue
+            progress = np.arange(len(rows), dtype=float) / max(len(rows) - 1, 1)
+            values = np.asarray([r["cue_peak_z"] for r in rows])
+            curve = np.full(progress_centers.size, np.nan)
+            for i, (lo, hi) in enumerate(zip(progress_edges[:-1], progress_edges[1:])):
+                keep = (progress >= lo) & ((progress < hi) if i < len(progress_centers)-1 else
+                                           (progress <= hi))
+                if keep.any():
+                    curve[i] = np.nanmean(values[keep])
+            session_curves.append(curve)
+            ax.plot(progress_centers, curve, marker="o", lw=1.4, alpha=.55, label=label)
+            narrow_summary[channel][label] = {
+                "n_terminal": len(rows),
+                "first5_mean_z": float(np.nanmean(values[:5])),
+                "last5_mean_z": float(np.nanmean(values[-5:])),
+                "last5_minus_first5_z": float(np.nanmean(values[-5:]) - np.nanmean(values[:5])),
+            }
+        matrix = np.vstack(session_curves)
+        narrow_pooled = np.nanmean(matrix, axis=0)
+        narrow_n = np.sum(np.isfinite(matrix), axis=0)
+        narrow_sem = np.nanstd(matrix, axis=0, ddof=1) / np.sqrt(narrow_n)
+        ax.plot(progress_centers, narrow_pooled, color="black", lw=3, marker="o",
+                label="session-equal pooled mean")
+        ax.fill_between(progress_centers, narrow_pooled-narrow_sem,
+                        narrow_pooled+narrow_sem, color="black", alpha=.14)
+        ax.axhline(0, color=".7", lw=.8)
+        ax.grid(alpha=.2)
+        ax.set(title=channel.replace("_detect", ""), xlabel="fraction through terminal no-lick block",
+               ylabel="cue response: mean 0.05-0.30 s\n(baseline-corrected z)")
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower center", bbox_to_anchor=(0.5, 0.01),
+               frameon=False, ncol=min(3, len(labels)))
+    fig.suptitle("Narrow 565 cue response across terminal no-lick blocks\n"
+                 "Hemispheres separate; sessions weighted equally within normalized-progress bins")
+    fig.tight_layout(rect=(0, .17, 1, .92))
+    fig.savefig(OUTPUT / "pooled_565_terminal_no_lick_narrow_cue_by_progress.png", dpi=220,
+                bbox_inches="tight")
+    plt.close(fig)
+
+    fig, axes = plt.subplots(1, 2, figsize=(11.5, 5.3), sharey=True)
+    for ax, channel in zip(axes, CHANNELS):
+        rows = narrow_summary[channel]
+        for label, values in rows.items():
+            ax.plot([0, 1], [values["first5_mean_z"], values["last5_mean_z"]],
+                    marker="o", lw=1.6, alpha=.72, label=label)
+        if rows:
+            first = np.mean([v["first5_mean_z"] for v in rows.values()])
+            last = np.mean([v["last5_mean_z"] for v in rows.values()])
+            ax.plot([0, 1], [first, last], marker="o", color="black", lw=3.2,
+                    ms=8, label="session-equal mean")
+        ax.set(xticks=[0, 1], xticklabels=["first 5 misses", "last 5 misses"],
+               title=channel.replace("_detect", ""),
+               ylabel="cue response: mean 0.05-0.30 s\n(baseline-corrected z)")
+        ax.axhline(0, color=".7", lw=.8)
+        ax.grid(axis="y", alpha=.2)
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower center", bbox_to_anchor=(0.5, 0.01),
+               frameon=False, ncol=min(3, len(labels)))
+    fig.suptitle("First and last five terminal misses\nNarrow cue window; hemispheres shown separately")
+    fig.tight_layout(rect=(0, .17, 1, .91))
+    fig.savefig(OUTPUT / "pooled_565_terminal_no_lick_narrow_cue_first5_vs_last5.png", dpi=220,
+                bbox_inches="tight")
+    plt.close(fig)
+
     # Explicit early-vs-late terminal-block comparison. Average hemispheres
     # within trial rank and sessions equally; require 20 complete terminal
     # trials so the first and last ten never overlap.
@@ -249,10 +342,12 @@ def main():
                 bbox_inches="tight")
     plt.close(fig)
 
-    summary = {"response_window_s": RESPONSE_WINDOW, "baseline_window_s": BASELINE_WINDOW,
+    summary = {"response_window_s": RESPONSE_WINDOW, "cue_peak_window_s": CUE_PEAK_WINDOW,
+               "baseline_window_s": BASELINE_WINDOW,
                "carrier_qc_threshold_v": MIN_VALID_CARRIER_V,
                "pooled_sessions": valid_labels, "sessions": session_results,
                "terminal_first10_vs_last10": early_late,
+               "narrow_cue_first5_vs_last5": narrow_summary,
                "pooled_bin_centers_min": centers.tolist(), "pooled_mean_z": mean.tolist(),
                "pooled_sem_z": sem.tolist(), "pooled_n_sessions": n.tolist()}
     (OUTPUT / "metrics.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")

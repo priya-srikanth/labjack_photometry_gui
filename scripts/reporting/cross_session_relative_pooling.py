@@ -37,15 +37,29 @@ ARCHIVED_0921 = Path(
 ARCHIVED_0922 = Path(
     r"\\research.files.med.harvard.edu\Neurobio\MICROSCOPE\Priya\Photometry\data\PS113_20260922_112325.h5"
 )
+ARCHIVED_0923 = Path(
+    r"\\research.files.med.harvard.edu\Neurobio\MICROSCOPE\Priya\Photometry\data\PS113_20260923_110911.h5"
+)
+ARCHIVED_0924 = Path(
+    r"\\research.files.med.harvard.edu\Neurobio\MICROSCOPE\Priya\Photometry\data\PS113_20260924_105420.h5"
+)
 SELECTION_470_ALL_LICKS = SELECTION_470 + (
     (ARCHIVED_0921, "L_470_detect", "left", 211.0, "9/21 PS113 L470"),
     (ARCHIVED_0921, "R_470_detect", "right", 211.0, "9/21 PS113 R470"),
     (ARCHIVED_0922, "L_470_detect", "left", 211.0, "9/22 PS113 L470"),
     (ARCHIVED_0922, "R_470_detect", "right", 211.0, "9/22 PS113 R470"),
+    (ARCHIVED_0923, "L_470_detect", "left", 211.0, "9/23 PS113 L470"),
+    (ARCHIVED_0923, "R_470_detect", "right", 211.0, "9/23 PS113 R470"),
+    (ARCHIVED_0924, "L_470_detect", "left", 211.0, "9/24 PS113 L470"),
+    (ARCHIVED_0924, "R_470_detect", "right", 211.0, "9/24 PS113 R470"),
 )
 SELECTION_470_FIRST_BOUT = SELECTION_470 + (
     (ARCHIVED_0922, "L_470_detect", "left", 211.0, "9/22 PS113 L470"),
     (ARCHIVED_0922, "R_470_detect", "right", 211.0, "9/22 PS113 R470"),
+    (ARCHIVED_0923, "L_470_detect", "left", 211.0, "9/23 PS113 L470"),
+    (ARCHIVED_0923, "R_470_detect", "right", 211.0, "9/23 PS113 R470"),
+    (ARCHIVED_0924, "L_470_detect", "left", 211.0, "9/24 PS113 L470"),
+    (ARCHIVED_0924, "R_470_detect", "right", 211.0, "9/24 PS113 R470"),
 )
 SELECTION_565 = (
     (Path(r"C:\Users\SabatiniLab\data\PS113_2_20260911_192740.h5"), "L_565_detect", "left", 331.0, "9/11 PS113-2 L565"),
@@ -87,13 +101,19 @@ def load_entry(spec, event_kind, config, window=WINDOW):
     cache = ROOT / "derived_cache" / path.stem
     with PhotometrySession(path) as session:
         events = extract_events(session)
-        if path in (ARCHIVED_0921, ARCHIVED_0922):
+        if path in (ARCHIVED_0921, ARCHIVED_0922, ARCHIVED_0923, ARCHIVED_0924):
             # The raw file is archived on the server, but demodulation was
             # completed before local cleanup. Reuse that source-validated
             # envelope so adding an event family does not re-read gigabytes.
+            analysis_dirs = {
+                ARCHIVED_0921: "PS113_20260921_analysis",
+                ARCHIVED_0922: "PS113_20260922_analysis",
+                ARCHIVED_0923: "PS113_20260923_analysis",
+                ARCHIVED_0924: "PS113_20260924_analysis",
+            }
             prior_dirs = (
                 ROOT / "derived_cache" / path.stem,
-                ROOT.parent / ("PS113_20260921_analysis" if path == ARCHIVED_0921 else "PS113_20260922_analysis") / "derived_cache_200Hz",
+                ROOT.parent / analysis_dirs[path] / "derived_cache_200Hz",
             )
             saved_path = next(
                 candidate for directory in prior_dirs
@@ -236,6 +256,37 @@ def plot_relative(entries_by_event, family, output):
     fig.savefig(output, dpi=200, bbox_inches="tight")
     plt.close(fig)
     return metrics
+
+
+def plot_relative_overlay(entries_by_event, family, output):
+    """Overlay all six hemisphere-relative positions for direct comparison."""
+    fig, axes = plt.subplots(1, len(entries_by_event), figsize=(13.5, 5.2),
+                             sharex=True, sharey=True, squeeze=False)
+    for ax, (event, entries) in zip(axes[0], entries_by_event.items()):
+        for group, color in zip(GROUPS, COLORS):
+            unit_means, durations = [], []
+            for entry in entries:
+                selected = entry["relative"] == group
+                if np.any(selected):
+                    unit_means.append(np.nanmean(entry["values"][selected], axis=0))
+                    durations.append(entry["duration_s"])
+            if not unit_means:
+                continue
+            pooled, sem, _ = weighted_mean_sem(unit_means, durations)
+            pooled, sem = smooth(pooled), smooth(sem)
+            time_ms = entries[0]["time"] * 1000
+            ax.plot(time_ms, pooled, color=color, lw=2.2, label=group)
+            ax.fill_between(time_ms, pooled-sem, pooled+sem, color=color, alpha=.10)
+        ax.set_title(event)
+        style(ax, xlabel=True)
+    handles, labels = axes[0][0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower center", bbox_to_anchor=(0.5, 0.01),
+               frameon=False, ncol=6, fontsize=9)
+    fig.suptitle(f"{family}: hemisphere-relative spout positions overlaid\n"
+                 "Session-duration weighted; shaded bands show across-session SEM")
+    fig.tight_layout(rect=(0, 0.14, 1, 0.91))
+    fig.savefig(output, dpi=220, bbox_inches="tight")
+    plt.close(fig)
 
 
 def plot_by_hemisphere(entries_by_event, family, output):
@@ -382,7 +433,7 @@ def main():
     config = load_analysis_config(CONFIG)
     config = replace(config, demodulation=replace(config.demodulation, target_rate_hz=RATE))
     families = [
-        ("470 nm: event-specific selected channels; 9/21 L+R all-lick and 9/22 L+R added", SELECTION_470, ("all licks", "first lick of bout"), "470", (-1.0, 1.0)),
+        ("470 nm: descriptive GCaMP pool through 9/24", SELECTION_470, ("all licks", "first lick of bout"), "470", (-1.0, 1.0)),
         ("565 nm: PS113 L + R (9/11, 9/14-9/17, 9/21-9/22)", SELECTION_565, ("reward", "first lick after reward"), "565", (-1.0, 3.5)),
     ]
     all_metrics = {"rate_hz": RATE, "smoothing_ms": SMOOTH_MS, "baseline_s": BASELINE, "groups": GROUPS}
@@ -398,6 +449,8 @@ def main():
             "all_positions": plot_all_position_pool(loaded, title, ROOT / f"combined_{short}_all_positions.png"),
             "relative_positions": plot_relative(loaded, title, ROOT / f"combined_{short}_relative_positions.png"),
         }
+        plot_relative_overlay(
+            loaded, title, ROOT / f"combined_{short}_relative_positions_overlay.png")
         if short == "565":
             all_metrics[short]["hemispheres"] = plot_by_hemisphere(
                 loaded, title, ROOT / "combined_565_by_hemisphere.png")
