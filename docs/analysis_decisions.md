@@ -541,3 +541,52 @@ on 9/22 relative to the immediately preceding 200 ms). L565 is essentially
 flat at stop on both days (+0.007 and 0.000 z). The 470 channels do not show a
 comparably consistent cross-session rebound, but structured noise and optical
 coupling remain reasons to describe the R565 feature as a candidate response.
+
+## 2026-09-24 pooled displays and terminal-miss metric correction
+
+The descriptive 470 pool now includes L470 and R470 from 9/23 and 9/24 at the
+user's direction. This inclusion is for visual sensitivity analysis rather
+than a claim that every added channel contains a biological GCaMP response.
+The 9/24 acquisition passes carrier and voltage-range QC, but its L470
+all-lick mean is essentially flat and its small R470 response peaks at lick
+onset while retaining structured oscillation. Keep those caveats with pooled
+interpretation and retain all session traces behind the duration-weighted
+mean.
+
+Pooled hemisphere-relative position figures now have an overlay form in
+addition to the six-panel grid. The overlay uses saturated colorblind-safe
+colors for near/far ipsilateral, middle, and contralateral traces, faint SEM
+bands, and a legend outside the axes. All pooled-figure legends should remain
+outside the plotting region so they cannot obscure data. The overlay figures
+are generated for both the 470 lick events and the 565 reward/first-lick-after-
+reward events.
+
+The broad 0.05-0.75-s mean is retained as a descriptive measure of sustained
+post-cue activity, but it must not be called the cue peak. It can increase
+when later activity grows even if the sharp cue-locked feature diminishes.
+The terminal-miss cue-peak analysis therefore uses the mean from 0.05 to
+0.30 s after cue, preserves L565 and R565 separately, and compares normalized
+progress through each terminal no-lick block. A complementary first-five
+versus last-five comparison avoids unequal block durations. Valid sessions in
+this analysis are 9/15, 9/16, 9/17, 9/22, and 9/24. The session-equal L565
+mean falls from approximately +0.28 z to -0.13 z, whereas R565 remains near
++0.38 z. Thus attenuation is supported for L565 but is not consistent across
+hemispheres or sessions. The older broad-window slides were removed from the
+standing pooled deck and replaced by these narrow-window figures.
+
+The standard pooled 470 display uses 80-ms Gaussian smoothing after 200-Hz
+demodulation. Display smoothing does not alter the cached envelope, event
+alignment, or normalization. For explicit sensitivity views,
+`PHOTOMETRY_470_SMOOTH_MS` controls the 470 display smoothing and
+`PHOTOMETRY_POSITION_OVERLAY_LW` controls overlay line width. The exploratory
+server deck generated on 9/24 uses 150-ms smoothing, a -0.5 to +1.0-s display
+window, and 1.6-point position-overlay lines. These settings are labeled as
+exploratory and should not silently become inferential defaults.
+
+Production presentations now use standing filenames and are overwritten only
+after local validation and server checksum verification:
+`photometry_per_session.pptx`, `photometry_pooled_selected.pptx`, and
+`behavior_summary_deck.pptx`. Dated deck copies were removed from the server
+to prevent users from opening stale analyses. Generated figures, caches, and
+PowerPoint files remain outside Git; the scripts and scientific decisions are
+version controlled.

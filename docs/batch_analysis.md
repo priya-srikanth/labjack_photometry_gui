@@ -60,3 +60,24 @@ They do not decide which H5 files deserve analysis. Control deck membership by
 which session directories the production batch creates. Short LED, cable,
 gain, and saturation tests should remain outside standing behavioral decks or
 be stored under an explicitly labeled QC-only hierarchy.
+
+Standing presentations are updated in place after validation rather than
+receiving a new dated filename for every session:
+
+```text
+Photometry/photometry_per_session.pptx
+Photometry/photometry_pooled_selected.pptx
+Behavior_logs/GB219/behavior_summary_deck.pptx
+```
+
+Cross-session reporting supports two display-only overrides for sensitivity
+checks. They do not change demodulation or cached data:
+
+```powershell
+$env:PHOTOMETRY_470_SMOOTH_MS = "150"
+$env:PHOTOMETRY_POSITION_OVERLAY_LW = "1.6"
+python scripts/reporting/cross_session_relative_pooling.py
+```
+
+The committed 470 smoothing default remains 80 ms. Any non-default value must
+appear in the figure title and deck subtitle.
