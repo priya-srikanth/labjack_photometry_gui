@@ -587,10 +587,13 @@ exploratory and should not silently become inferential defaults.
 of both pooled relative-position overlays to `grant_figs`. The data,
 duration-weighting, smoothing, and SEM calculations are unchanged; only the
 presentation differs. The grant layout is 7.4 x 3.35 inches with enlarged
-titles, labels, and ticks, 1.45-point traces, restrained SEM bands, minimal
-spines, and a compact two-row legend. Each figure is saved as a 600-dpi PNG
+titles, labels, and ticks, 1.05-point traces, visible 0.15-alpha SEM bands,
+minimal spines, and a compact two-row legend. Each figure is saved as a 600-dpi PNG
 plus editable PDF and SVG. The 470-nm view spans -0.5 to +1.0 s, while the
 565-nm view remains -1.0 to +3.5 s to retain the slower response evolution.
+Grant-only 565-nm display smoothing is 80 ms and is configurable with
+`PHOTOMETRY_GRANT_565_SMOOTH_MS`; this does not alter the underlying aligned
+traces, normalization, or summary statistics.
 
 Production presentations now use standing filenames and are overwritten only
 after local validation and server checksum verification:

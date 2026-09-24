@@ -22,6 +22,7 @@ CONFIG = Path(r"C:\Users\SabatiniLab\Documents\Codex\RigSoftware\labjack_photome
 RATE = 200.0
 SMOOTH_MS = 40.0
 SMOOTH_470_MS = float(os.environ.get("PHOTOMETRY_470_SMOOTH_MS", "80"))
+GRANT_565_SMOOTH_MS = float(os.environ.get("PHOTOMETRY_GRANT_565_SMOOTH_MS", "80"))
 OVERLAY_LINEWIDTH = float(os.environ.get("PHOTOMETRY_POSITION_OVERLAY_LW", "2.8"))
 GRANT_FIG_DIR = ROOT / "grant_figs"
 WINDOW = (-1.0, 1.0)
@@ -323,10 +324,15 @@ def plot_relative_overlay_grant(entries_by_event, family, output_stem):
             if not unit_means:
                 continue
             pooled, sem, _ = weighted_mean_sem(unit_means, durations)
-            pooled, sem = display_smooth(pooled, family), display_smooth(sem, family)
+            if family.startswith("565"):
+                sigma = GRANT_565_SMOOTH_MS / 1000.0 * RATE
+                pooled = gaussian_filter1d(pooled, sigma=sigma, mode="nearest")
+                sem = gaussian_filter1d(sem, sigma=sigma, mode="nearest")
+            else:
+                pooled, sem = display_smooth(pooled, family), display_smooth(sem, family)
             time_ms = entries[0]["time"] * 1000
-            ax.plot(time_ms, pooled, color=color, lw=1.45, label=group)
-            ax.fill_between(time_ms, pooled-sem, pooled+sem, color=color, alpha=.07,
+            ax.plot(time_ms, pooled, color=color, lw=1.05, label=group)
+            ax.fill_between(time_ms, pooled-sem, pooled+sem, color=color, alpha=.15,
                             linewidth=0)
         ax.axvline(0, color="#444444", lw=1.0, ls="--", zorder=0)
         ax.axhline(0, color="#777777", lw=.7, zorder=0)
