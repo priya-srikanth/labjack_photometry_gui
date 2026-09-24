@@ -23,7 +23,7 @@ SMOOTH_MS = 40.0
 WINDOW = (-1.0, 1.0)
 BASELINE = (-1.0, -0.5)
 GROUPS = ("near ipsi", "near mid", "near contra", "far ipsi", "far mid", "far contra")
-COLORS = ("#2166ac", "#67a9cf", "#d1e5f0", "#ef8a62", "#b2182b", "#7f0000")
+COLORS = ("#0072B2", "#56B4E9", "#009E73", "#E69F00", "#D55E00", "#CC79A7")
 PHYSICAL_GROUPS = ("near L", "near center", "near R", "far L", "far center", "far R")
 
 SELECTION_470 = (
@@ -184,8 +184,13 @@ def weighted_mean_sem(rows, weights):
     return mean, sem, n_eff
 
 
-def smooth(y, rate=RATE):
-    return gaussian_filter1d(y, SMOOTH_MS / 2000.0 * rate, mode="nearest")
+def smooth(y, rate=RATE, smoothing_ms=SMOOTH_MS):
+    return gaussian_filter1d(y, smoothing_ms / 2000.0 * rate, mode="nearest")
+
+
+def display_smooth(y, family):
+    """Apply stronger display-only smoothing to the noisier 470 traces."""
+    return smooth(y, smoothing_ms=80.0 if family.startswith("470") else SMOOTH_MS)
 
 
 def style(ax, xlabel=False, ylabel="baseline-corrected rolling z-score"):
@@ -206,17 +211,18 @@ def plot_all_position_pool(entries_by_event, family, output):
         for entry, color in zip(entries, entry_colors):
             m, _, n = mean_sem(entry["values"])
             session_means.append(m)
-            ax.plot(entry["time"] * 1000, smooth(m), color=color, lw=1.5, alpha=.8,
+            ax.plot(entry["time"] * 1000, display_smooth(m, family), color=color, lw=1.5, alpha=.8,
                     label=f'{entry["label"]} (n={n})')
         durations = [entry["duration_s"] for entry in entries]
         pooled, sem, _ = weighted_mean_sem(session_means, durations)
-        pooled, sem = smooth(pooled), smooth(sem)
+        pooled, sem = display_smooth(pooled, family), display_smooth(sem, family)
         ax.plot(entries[0]["time"] * 1000, pooled, color="#111111", lw=2.8, label="duration-weighted pooled mean")
         ax.fill_between(entries[0]["time"] * 1000, pooled-sem, pooled+sem, color="#111111", alpha=.12)
         ax.set_title(event)
         style(ax, xlabel=True)
         metrics[event] = {"entries": [{"label": e["label"], "n_events": e["n"], "duration_s": e["duration_s"]} for e in entries]}
-    fig.suptitle(f"{family}: all spout positions pooled\n200 Hz NTA spectrogram; 40 ms display smoothing; selected hemispheres weighted by session duration")
+    smoothing_ms = 80 if family.startswith("470") else int(SMOOTH_MS)
+    fig.suptitle(f"{family}: all spout positions pooled\n200 Hz NTA spectrogram; {smoothing_ms} ms display smoothing; selected hemispheres weighted by session duration")
     handles, labels = axes[0].get_legend_handles_labels()
     fig.legend(handles, labels, loc="lower center", bbox_to_anchor=(0.5, 0.01),
                frameon=False, fontsize=8, ncol=min(4, len(labels)))
@@ -242,7 +248,7 @@ def plot_relative(entries_by_event, family, output):
                     durations.append(entry["duration_s"])
             if unit_means:
                 pooled, sem, n_eff = weighted_mean_sem(unit_means, durations)
-                pooled, sem = smooth(pooled), smooth(sem)
+                pooled, sem = display_smooth(pooled, family), display_smooth(sem, family)
                 ax.plot(entries[0]["time"] * 1000, pooled, color=color, lw=2.2)
                 ax.fill_between(entries[0]["time"] * 1000, pooled-sem, pooled+sem, color=color, alpha=.18)
                 metrics[event][group] = {"n_units": len(unit_means), "effective_n": n_eff,
@@ -273,10 +279,10 @@ def plot_relative_overlay(entries_by_event, family, output):
             if not unit_means:
                 continue
             pooled, sem, _ = weighted_mean_sem(unit_means, durations)
-            pooled, sem = smooth(pooled), smooth(sem)
+            pooled, sem = display_smooth(pooled, family), display_smooth(sem, family)
             time_ms = entries[0]["time"] * 1000
-            ax.plot(time_ms, pooled, color=color, lw=2.2, label=group)
-            ax.fill_between(time_ms, pooled-sem, pooled+sem, color=color, alpha=.10)
+            ax.plot(time_ms, pooled, color=color, lw=2.8, label=group)
+            ax.fill_between(time_ms, pooled-sem, pooled+sem, color=color, alpha=.055)
         ax.set_title(event)
         style(ax, xlabel=True)
     handles, labels = axes[0][0].get_legend_handles_labels()
@@ -302,7 +308,7 @@ def plot_by_hemisphere(entries_by_event, family, output):
             session_means = [np.nanmean(entry["values"], axis=0) for entry in selected_entries]
             durations = [entry["duration_s"] for entry in selected_entries]
             pooled, sem, n_eff = weighted_mean_sem(session_means, durations)
-            pooled, sem = smooth(pooled), smooth(sem)
+            pooled, sem = display_smooth(pooled, family), display_smooth(sem, family)
             ax.plot(selected_entries[0]["time"] * 1000, pooled, color="#2166ac" if hemisphere == "left" else "#b2182b", lw=2.6)
             ax.fill_between(selected_entries[0]["time"] * 1000, pooled-sem, pooled+sem,
                             color="#2166ac" if hemisphere == "left" else "#b2182b", alpha=.16)
@@ -348,7 +354,7 @@ def plot_physical_positions_by_hemisphere(entries_by_event, family, output):
                         counts.append(int(selected.sum()))
                 if unit_means:
                     pooled, sem, n_eff = weighted_mean_sem(unit_means, durations)
-                    pooled, sem = smooth(pooled), smooth(sem)
+                    pooled, sem = display_smooth(pooled, family), display_smooth(sem, family)
                     ax.plot(hemi_entries[0]["time"] * 1000, pooled, color=color, lw=2.2)
                     ax.fill_between(hemi_entries[0]["time"] * 1000, pooled-sem, pooled+sem,
                                     color=color, alpha=.18)
@@ -386,10 +392,10 @@ def plot_single_event_pool(entries, event, family, output):
     for entry, color in zip(entries, entry_colors):
         mean, _, n = mean_sem(entry["values"])
         session_means.append(mean)
-        ax.plot(entry["time"] * 1000, smooth(mean), color=color, lw=1.7, alpha=.82,
+        ax.plot(entry["time"] * 1000, display_smooth(mean, family), color=color, lw=1.7, alpha=.82,
                 label=f'{entry["label"]} (n={n})')
     pooled, sem, _ = weighted_mean_sem(session_means, [entry["duration_s"] for entry in entries])
-    pooled, sem = smooth(pooled), smooth(sem)
+    pooled, sem = display_smooth(pooled, family), display_smooth(sem, family)
     ax.plot(entries[0]["time"] * 1000, pooled, color="#111111", lw=3.2,
             label="duration-weighted pooled mean")
     ax.fill_between(entries[0]["time"] * 1000, pooled-sem, pooled+sem, color="#111111", alpha=.13)
@@ -398,7 +404,8 @@ def plot_single_event_pool(entries, event, family, output):
     handles, labels = ax.get_legend_handles_labels()
     fig.legend(handles, labels, loc="lower center", bbox_to_anchor=(0.5, 0.01),
                frameon=False, fontsize=9, ncol=min(3, len(labels)))
-    fig.suptitle(f"{family}\n200 Hz NTA spectrogram; 40 ms display smoothing; session-duration weighted")
+    smoothing_ms = 80 if family.startswith("470") else int(SMOOTH_MS)
+    fig.suptitle(f"{family}\n200 Hz NTA spectrogram; {smoothing_ms} ms display smoothing; session-duration weighted")
     fig.tight_layout(rect=(0, 0.14, 1, 0.92))
     fig.savefig(output, dpi=200, bbox_inches="tight")
     plt.close(fig)
@@ -416,7 +423,7 @@ def plot_single_event_relative(entries, event, family, output):
                 durations.append(entry["duration_s"])
         if unit_means:
             pooled, sem, _ = weighted_mean_sem(unit_means, durations)
-            pooled, sem = smooth(pooled), smooth(sem)
+            pooled, sem = display_smooth(pooled, family), display_smooth(sem, family)
             ax.plot(entries[0]["time"] * 1000, pooled, color=color, lw=2.4)
             ax.fill_between(entries[0]["time"] * 1000, pooled-sem, pooled+sem, color=color, alpha=.18)
         ax.set_title(group)
