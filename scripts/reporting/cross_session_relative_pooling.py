@@ -3,6 +3,7 @@
 from dataclasses import replace
 from pathlib import Path
 import json
+import os
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -20,6 +21,8 @@ ROOT = Path(r"C:\Users\SabatiniLab\Documents\Codex\2026-08-10\i\cross_session_20
 CONFIG = Path(r"C:\Users\SabatiniLab\Documents\Codex\RigSoftware\labjack_photometry_gui\config\analysis.yaml")
 RATE = 200.0
 SMOOTH_MS = 40.0
+SMOOTH_470_MS = float(os.environ.get("PHOTOMETRY_470_SMOOTH_MS", "80"))
+OVERLAY_LINEWIDTH = float(os.environ.get("PHOTOMETRY_POSITION_OVERLAY_LW", "2.8"))
 WINDOW = (-1.0, 1.0)
 BASELINE = (-1.0, -0.5)
 GROUPS = ("near ipsi", "near mid", "near contra", "far ipsi", "far mid", "far contra")
@@ -190,7 +193,7 @@ def smooth(y, rate=RATE, smoothing_ms=SMOOTH_MS):
 
 def display_smooth(y, family):
     """Apply stronger display-only smoothing to the noisier 470 traces."""
-    return smooth(y, smoothing_ms=80.0 if family.startswith("470") else SMOOTH_MS)
+    return smooth(y, smoothing_ms=SMOOTH_470_MS if family.startswith("470") else SMOOTH_MS)
 
 
 def style(ax, xlabel=False, ylabel="baseline-corrected rolling z-score"):
@@ -220,8 +223,10 @@ def plot_all_position_pool(entries_by_event, family, output):
         ax.fill_between(entries[0]["time"] * 1000, pooled-sem, pooled+sem, color="#111111", alpha=.12)
         ax.set_title(event)
         style(ax, xlabel=True)
+        if family.startswith("470"):
+            ax.set_xlim(-500, 1000)
         metrics[event] = {"entries": [{"label": e["label"], "n_events": e["n"], "duration_s": e["duration_s"]} for e in entries]}
-    smoothing_ms = 80 if family.startswith("470") else int(SMOOTH_MS)
+    smoothing_ms = int(SMOOTH_470_MS) if family.startswith("470") else int(SMOOTH_MS)
     fig.suptitle(f"{family}: all spout positions pooled\n200 Hz NTA spectrogram; {smoothing_ms} ms display smoothing; selected hemispheres weighted by session duration")
     handles, labels = axes[0].get_legend_handles_labels()
     fig.legend(handles, labels, loc="lower center", bbox_to_anchor=(0.5, 0.01),
@@ -281,10 +286,12 @@ def plot_relative_overlay(entries_by_event, family, output):
             pooled, sem, _ = weighted_mean_sem(unit_means, durations)
             pooled, sem = display_smooth(pooled, family), display_smooth(sem, family)
             time_ms = entries[0]["time"] * 1000
-            ax.plot(time_ms, pooled, color=color, lw=2.8, label=group)
+            ax.plot(time_ms, pooled, color=color, lw=OVERLAY_LINEWIDTH, label=group)
             ax.fill_between(time_ms, pooled-sem, pooled+sem, color=color, alpha=.055)
         ax.set_title(event)
         style(ax, xlabel=True)
+        if family.startswith("470"):
+            ax.set_xlim(-500, 1000)
     handles, labels = axes[0][0].get_legend_handles_labels()
     fig.legend(handles, labels, loc="lower center", bbox_to_anchor=(0.5, 0.01),
                frameon=False, ncol=6, fontsize=9)
@@ -404,7 +411,7 @@ def plot_single_event_pool(entries, event, family, output):
     handles, labels = ax.get_legend_handles_labels()
     fig.legend(handles, labels, loc="lower center", bbox_to_anchor=(0.5, 0.01),
                frameon=False, fontsize=9, ncol=min(3, len(labels)))
-    smoothing_ms = 80 if family.startswith("470") else int(SMOOTH_MS)
+    smoothing_ms = int(SMOOTH_470_MS) if family.startswith("470") else int(SMOOTH_MS)
     fig.suptitle(f"{family}\n200 Hz NTA spectrogram; {smoothing_ms} ms display smoothing; session-duration weighted")
     fig.tight_layout(rect=(0, 0.14, 1, 0.92))
     fig.savefig(output, dpi=200, bbox_inches="tight")
