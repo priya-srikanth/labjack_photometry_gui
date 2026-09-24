@@ -195,10 +195,12 @@ def plot_all_position_pool(entries_by_event, family, output):
         ax.fill_between(entries[0]["time"] * 1000, pooled-sem, pooled+sem, color="#111111", alpha=.12)
         ax.set_title(event)
         style(ax, xlabel=True)
-        ax.legend(frameon=False, fontsize=8)
         metrics[event] = {"entries": [{"label": e["label"], "n_events": e["n"], "duration_s": e["duration_s"]} for e in entries]}
     fig.suptitle(f"{family}: all spout positions pooled\n200 Hz NTA spectrogram; 40 ms display smoothing; selected hemispheres weighted by session duration")
-    fig.tight_layout()
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower center", bbox_to_anchor=(0.5, 0.01),
+               frameon=False, fontsize=8, ncol=min(4, len(labels)))
+    fig.tight_layout(rect=(0, 0.16, 1, 0.92))
     fig.savefig(output, dpi=200, bbox_inches="tight")
     plt.close(fig)
     return metrics
@@ -342,9 +344,11 @@ def plot_single_event_pool(entries, event, family, output):
     ax.fill_between(entries[0]["time"] * 1000, pooled-sem, pooled+sem, color="#111111", alpha=.13)
     style(ax, xlabel=True)
     ax.set_title(event)
-    ax.legend(frameon=False, fontsize=9, ncol=2)
+    handles, labels = ax.get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower center", bbox_to_anchor=(0.5, 0.01),
+               frameon=False, fontsize=9, ncol=min(3, len(labels)))
     fig.suptitle(f"{family}\n200 Hz NTA spectrogram; 40 ms display smoothing; session-duration weighted")
-    fig.tight_layout()
+    fig.tight_layout(rect=(0, 0.14, 1, 0.92))
     fig.savefig(output, dpi=200, bbox_inches="tight")
     plt.close(fig)
 

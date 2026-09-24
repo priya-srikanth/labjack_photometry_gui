@@ -193,8 +193,10 @@ def main():
            ylabel="cue response: mean 0.05-0.75 s (baseline-corrected z)",
            title="PS113 565 response during terminal no-lick blocks\n"
                  "L/R averaged within session; two-minute bins; equal session weighting")
-    ax.legend(frameon=False, ncol=2)
-    fig.tight_layout()
+    handles, labels = ax.get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower center", bbox_to_anchor=(0.5, 0.01),
+               frameon=False, ncol=min(3, len(labels)))
+    fig.tight_layout(rect=(0, 0.13, 1, 1))
     fig.savefig(OUTPUT / "pooled_565_terminal_no_lick_response_over_time.png", dpi=220,
                 bbox_inches="tight")
     plt.close(fig)
@@ -239,8 +241,10 @@ def main():
                  "L/R averaged; sessions require >=20 terminal misses")
     ax.axhline(0, color=".7", lw=.8)
     ax.grid(axis="y", alpha=.2)
-    ax.legend(frameon=False, ncol=2)
-    fig.tight_layout()
+    handles, labels = ax.get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower center", bbox_to_anchor=(0.5, 0.01),
+               frameon=False, ncol=min(3, len(labels)))
+    fig.tight_layout(rect=(0, 0.13, 1, 1))
     fig.savefig(OUTPUT / "pooled_565_terminal_no_lick_first10_vs_last10.png", dpi=220,
                 bbox_inches="tight")
     plt.close(fig)
