@@ -583,6 +583,15 @@ server deck generated on 9/24 uses 150-ms smoothing, a -0.5 to +1.0-s display
 window, and 1.6-point position-overlay lines. These settings are labeled as
 exploratory and should not silently become inferential defaults.
 
+`cross_session_relative_pooling.py` also exports compact, grant-ready versions
+of both pooled relative-position overlays to `grant_figs`. The data,
+duration-weighting, smoothing, and SEM calculations are unchanged; only the
+presentation differs. The grant layout is 7.4 x 3.35 inches with enlarged
+titles, labels, and ticks, 1.45-point traces, restrained SEM bands, minimal
+spines, and a compact two-row legend. Each figure is saved as a 600-dpi PNG
+plus editable PDF and SVG. The 470-nm view spans -0.5 to +1.0 s, while the
+565-nm view remains -1.0 to +3.5 s to retain the slower response evolution.
+
 Production presentations now use standing filenames and are overwritten only
 after local validation and server checksum verification:
 `photometry_per_session.pptx`, `photometry_pooled_selected.pptx`, and

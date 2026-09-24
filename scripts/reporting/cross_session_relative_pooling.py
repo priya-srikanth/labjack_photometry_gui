@@ -23,6 +23,7 @@ RATE = 200.0
 SMOOTH_MS = 40.0
 SMOOTH_470_MS = float(os.environ.get("PHOTOMETRY_470_SMOOTH_MS", "80"))
 OVERLAY_LINEWIDTH = float(os.environ.get("PHOTOMETRY_POSITION_OVERLAY_LW", "2.8"))
+GRANT_FIG_DIR = ROOT / "grant_figs"
 WINDOW = (-1.0, 1.0)
 BASELINE = (-1.0, -0.5)
 GROUPS = ("near ipsi", "near mid", "near contra", "far ipsi", "far mid", "far contra")
@@ -302,6 +303,57 @@ def plot_relative_overlay(entries_by_event, family, output):
     plt.close(fig)
 
 
+def plot_relative_overlay_grant(entries_by_event, family, output_stem):
+    """Compact, high-resolution overlay suitable for a small grant panel.
+
+    The data and weighting match :func:`plot_relative_overlay`; only display
+    geometry and typography differ.  PDF and SVG retain editable vectors,
+    while the 600-dpi PNG is convenient for PowerPoint and Word.
+    """
+    fig, axes = plt.subplots(1, len(entries_by_event), figsize=(7.4, 3.35),
+                             sharex=True, sharey=True, squeeze=False)
+    for ax, (event, entries) in zip(axes[0], entries_by_event.items()):
+        for group, color in zip(GROUPS, COLORS):
+            unit_means, durations = [], []
+            for entry in entries:
+                selected = entry["relative"] == group
+                if np.any(selected):
+                    unit_means.append(np.nanmean(entry["values"][selected], axis=0))
+                    durations.append(entry["duration_s"])
+            if not unit_means:
+                continue
+            pooled, sem, _ = weighted_mean_sem(unit_means, durations)
+            pooled, sem = display_smooth(pooled, family), display_smooth(sem, family)
+            time_ms = entries[0]["time"] * 1000
+            ax.plot(time_ms, pooled, color=color, lw=1.45, label=group)
+            ax.fill_between(time_ms, pooled-sem, pooled+sem, color=color, alpha=.07,
+                            linewidth=0)
+        ax.axvline(0, color="#444444", lw=1.0, ls="--", zorder=0)
+        ax.axhline(0, color="#777777", lw=.7, zorder=0)
+        ax.set_title(event, fontsize=13, fontweight="bold", pad=5)
+        ax.tick_params(axis="both", labelsize=11, width=1.0, length=3.5)
+        ax.set_xlabel("Time from event (ms)", fontsize=12)
+        ax.spines[["top", "right"]].set_visible(False)
+        if family.startswith("470"):
+            ax.set_xlim(-500, 1000)
+        else:
+            ax.set_xlim(-1000, 3500)
+    axes[0][0].set_ylabel("Response (rolling z-score)", fontsize=12)
+    handles, labels = axes[0][0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower center", bbox_to_anchor=(0.5, -0.01),
+               frameon=False, ncol=3, fontsize=10, handlelength=2.0,
+               columnspacing=1.1, handletextpad=.45)
+    wavelength = "470 nm" if family.startswith("470") else "565 nm"
+    fig.suptitle(f"{wavelength}: response by spout position", fontsize=15,
+                 fontweight="bold", y=.995)
+    fig.subplots_adjust(left=.105, right=.985, top=.82, bottom=.30, wspace=.16)
+    for suffix in ("png", "pdf", "svg"):
+        kwargs = {"dpi": 600} if suffix == "png" else {}
+        fig.savefig(output_stem.with_suffix(f".{suffix}"), bbox_inches="tight",
+                    facecolor="white", **kwargs)
+    plt.close(fig)
+
+
 def plot_by_hemisphere(entries_by_event, family, output):
     """Preserve left- and right-hemisphere pooled traces before laterality recoding."""
     fig, axes = plt.subplots(len(entries_by_event), 2, figsize=(13, 8),
@@ -444,6 +496,7 @@ def plot_single_event_relative(entries, event, family, output):
 
 def main():
     ROOT.mkdir(parents=True, exist_ok=True)
+    GRANT_FIG_DIR.mkdir(parents=True, exist_ok=True)
     config = load_analysis_config(CONFIG)
     config = replace(config, demodulation=replace(config.demodulation, target_rate_hz=RATE))
     families = [
@@ -465,6 +518,8 @@ def main():
         }
         plot_relative_overlay(
             loaded, title, ROOT / f"combined_{short}_relative_positions_overlay.png")
+        plot_relative_overlay_grant(
+            loaded, title, GRANT_FIG_DIR / f"pooled_{short}_relative_positions_overlay_grant")
         if short == "565":
             all_metrics[short]["hemispheres"] = plot_by_hemisphere(
                 loaded, title, ROOT / "combined_565_by_hemisphere.png")
