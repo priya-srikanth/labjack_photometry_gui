@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { FileBlob, PresentationFile } from "@oai/artifact-tool";
+import { FileBlob, PresentationFile } from "file:///C:/Users/SabatiniLab/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/@oai/artifact-tool/dist/artifact_tool.mjs";
 
 const root = "C:\\Users\\SabatiniLab\\Documents\\Codex\\2026-08-10\\i";
 const build = path.join(root, "deck_update");
@@ -27,7 +27,7 @@ async function baseDeck(title, subtitle) {
   s.shapes.add({geometry:"rect",position:{left:0,top:0,width:1280,height:18},fill:navy,line:{fill:"none",width:0}});
   addText(s,title,{left:72,top:190,width:1136,height:105},{fontSize:38,bold:true,color:navy,alignment:"center"});
   addText(s,subtitle,{left:145,top:320,width:990,height:90},{fontSize:20,color:muted,alignment:"center"});
-  addText(s,"Analysis through 22 September 2026",{left:250,top:585,width:780,height:32},{fontSize:14,color:muted,alignment:"center"});
+  addText(s,"Analysis through 25 September 2026",{left:250,top:585,width:780,height:32},{fontSize:14,color:muted,alignment:"center"});
   return p;
 }
 
@@ -58,6 +58,9 @@ const sessions=[
   {label:"PS113 · 9/18",dir:"PS113_20260918_analysis",stem:"PS113_20260918_122842",note:"5979.2 s; 540 cues; 419 lick trials; 121 misses. Detector QC failed: normal DAC loopbacks but nearly absent 470 carriers and markedly reduced 565 carriers. Excluded from all pooled biological analyses."},
   {label:"PS113 · 9/21",dir:"PS113_20260921_analysis",stem:"PS113_20260921_105243",note:"6497.0 s; 600 cues; 391 lick trials; 209 misses. Detector QC passed. Both 565 channels enter the selected pooled analysis. Both 470 channels enter the all-lick pool only."},
   {label:"PS113 · 9/22",dir:"PS113_20260922_analysis",stem:"PS113_20260922_112325",note:"4528.4 s; 450 cues; 346 lick trials; 104 misses. Detector QC passed. Both 565 channels and both 470 channels enter the descriptive pooled analyses; 470 retains oscillation and position-dependence caveats."},
+  {label:"PS113 · 9/23",dir:"PS113_20260923_analysis",stem:"PS113_20260923_110911",note:"5078.2 s; 450 cues; 390 lick trials; 60 intermittent misses. Detector QC passed."},
+  {label:"PS113 · 9/24",dir:"PS113_20260924_analysis",stem:"PS113_20260924_105420",note:"5401.9 s; 510 cues; 394 lick trials; 116 misses. Detector QC passed. Terminal no-lick block starts at trial 488."},
+  {label:"PS113 · 9/25",dir:"PS113_20260925_analysis",stem:"PS113_20260925_145324",note:"5327.3 s; 510 cues; 424 lick trials; 86 misses. Detector QC passed. Terminal no-lick block starts at trial 435. L470 is the selected 470 channel."},
 ];
 
 const per=await baseDeck("Photometry: standardized per-session analyses","Consistent 200-Hz demodulated, rolling-z analyses for every recording; session-specific quality caveats retained");
@@ -82,10 +85,15 @@ for (const x of sessions) {
     await figureSlide(per,"PS113 9/22: terminal no-lick cue response","Terminal miss block begins at trial 374",path.join(d,`${s}_565_terminal_no_lick_overlay.png`),"Complete photometry windows retain 75 terminal misses. Miss trials remain separate from the default lick-trial 565 pool.");
     await figureSlide(per,"PS113 9/22: cue outcome timeline","Lick and no-lick trials across the session",path.join(d,`${s}_cue_outcome_timeline.png`),"The terminal no-lick block begins at trial 374. Trial_stop defines the response-window boundary.");
   }
+  if (x.stem === "PS113_20260924_105420" || x.stem === "PS113_20260925_145324") {
+    const start = x.stem.includes("20260924") ? 488 : 435;
+    await figureSlide(per,`${x.label}: terminal no-lick cue response`,`Terminal miss block begins at trial ${start}`,path.join(d,`${s}_565_terminal_no_lick_overlay.png`),x.note);
+    await figureSlide(per,`${x.label}: cue outcome timeline`,`Lick and no-lick trials across the session`,path.join(d,`${s}_cue_outcome_timeline.png`),x.note);
+  }
 }
 
 const noLickDir=path.join(root,"565_no_lick_over_time");
-for (const day of ["915","916","917","918","921","922"]) {
+for (const day of ["915","916","917","918","921","922","924","925"]) {
   const failed=day==="918";
   await figureSlide(per,`PS113 ${day.slice(0,1)}/${day.slice(1)}: no-lick 565 response over time`,
     "Amplitude versus session time and minutes since the last detected lick",
@@ -118,5 +126,5 @@ async function save(p,name) {
   console.log(JSON.stringify({final,slides:p.slides.items.length}));
 }
 
-await save(per,"photometry_per_session_standardized_through_20260922.pptx");
-await save(pooled,"photometry_pooled_selected_through_20260922.pptx");
+await save(per,"photometry_per_session_palette_20260925.pptx");
+await save(pooled,"photometry_pooled_palette_20260925.pptx");

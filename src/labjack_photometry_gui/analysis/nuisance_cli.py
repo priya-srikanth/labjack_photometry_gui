@@ -18,9 +18,10 @@ from .demodulate import dominant_oscillation, regress_out_oscillation
 from .events import extract_events
 from .nuisance import circular_shuffle_peak_pvalue, regress_control, samples_away_from_events
 from .pipeline import process_channel
+from .position_style import PHYSICAL_POSITION_COLORS
 from .session import PhotometrySession
 
-COLORS = plt.get_cmap("viridis")(np.linspace(.08, .92, 6))
+COLORS = tuple(PHYSICAL_POSITION_COLORS[code] for code in range(6))
 
 
 def _first_bout_licks(lick_s: np.ndarray, quiet_s: float) -> np.ndarray:

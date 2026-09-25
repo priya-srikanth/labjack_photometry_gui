@@ -15,6 +15,7 @@ from labjack_photometry_gui.analysis.config import load_analysis_config
 from labjack_photometry_gui.analysis.events import extract_events
 from labjack_photometry_gui.analysis.geometry import SPOUT_LAYOUT, relative_labels
 from labjack_photometry_gui.analysis.pipeline import ProcessedTrace, normalize_envelope, process_channel
+from labjack_photometry_gui.analysis.position_style import RELATIVE_POSITION_COLORS
 from labjack_photometry_gui.analysis.session import PhotometrySession
 
 ROOT = Path(r"C:\Users\SabatiniLab\Documents\Codex\2026-08-10\i\cross_session_20260914")
@@ -28,7 +29,7 @@ GRANT_FIG_DIR = ROOT / "grant_figs"
 WINDOW = (-1.0, 1.0)
 BASELINE = (-1.0, -0.5)
 GROUPS = ("near ipsi", "near mid", "near contra", "far ipsi", "far mid", "far contra")
-COLORS = ("#0072B2", "#56B4E9", "#009E73", "#E69F00", "#D55E00", "#CC79A7")
+COLORS = RELATIVE_POSITION_COLORS
 PHYSICAL_GROUPS = ("near L", "near center", "near R", "far L", "far center", "far R")
 
 SELECTION_470 = (

@@ -16,6 +16,7 @@ from labjack_photometry_gui.analysis.config import load_analysis_config
 from labjack_photometry_gui.analysis.events import extract_events
 from labjack_photometry_gui.analysis.geometry import CHANNEL_HEMISPHERE, relative_labels
 from labjack_photometry_gui.analysis.pipeline import process_channel
+from labjack_photometry_gui.analysis.position_style import RELATIVE_POSITION_COLORS
 from labjack_photometry_gui.analysis.session import PhotometrySession
 
 SOURCE = Path(r"C:\Users\SabatiniLab\data\PS113_20260915_110019.h5")
@@ -81,7 +82,7 @@ def style(ax):
 
 
 POSITION_GROUPS = ("near ipsi", "near mid", "near contra", "far ipsi", "far mid", "far contra")
-POSITION_COLORS = ("#2166ac", "#67a9cf", "#d1e5f0", "#ef8a62", "#b2182b", "#7f0000")
+POSITION_COLORS = RELATIVE_POSITION_COLORS
 
 
 def plot_channel_positions(session, events, config, family, channels, event_specs, carrier_hz, output,

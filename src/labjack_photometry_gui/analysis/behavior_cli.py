@@ -17,9 +17,9 @@ from labjack_photometry_gui.analysis.behavior import (
     trials_from_session,
 )
 from labjack_photometry_gui.analysis.session import PhotometrySession
+from labjack_photometry_gui.analysis.position_style import PHYSICAL_POSITION_COLORS
 
-COLORS = {1: "#1976d2", 0: "#7b1fa2", 2: "#d32f2f",
-          4: "#64b5f6", 3: "#ba68c8", 5: "#ef9a9a"}
+COLORS = PHYSICAL_POSITION_COLORS
 
 
 def write_trials(path: Path, trials) -> None:

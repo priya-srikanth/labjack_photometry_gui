@@ -13,6 +13,7 @@ from labjack_photometry_gui.analysis.config import load_analysis_config
 from labjack_photometry_gui.analysis.events import extract_events
 from labjack_photometry_gui.analysis.geometry import relative_labels
 from labjack_photometry_gui.analysis.pipeline import process_channel
+from labjack_photometry_gui.analysis.position_style import RELATIVE_POSITION_COLORS
 from labjack_photometry_gui.analysis.session import PhotometrySession
 
 ROOT = Path(r"C:\Users\SabatiniLab\Documents\Codex\2026-08-10\i\retraction_across_sessions")
@@ -32,7 +33,7 @@ SESSIONS = (
     (Path(r"\\research.files.med.harvard.edu\Neurobio\MICROSCOPE\Priya\Photometry\data\PS113_20260925_145324.h5"), "9/25 PS113"),
 )
 GROUPS = ("near ipsi", "near mid", "near contra", "far ipsi", "far mid", "far contra")
-COLORS = ("#2166ac", "#67a9cf", "#d1e5f0", "#ef8a62", "#b2182b", "#7f0000")
+COLORS = RELATIVE_POSITION_COLORS
 
 
 def lowpass(values):

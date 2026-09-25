@@ -614,3 +614,15 @@ results remain audit/sensitivity analyses. The 9/25 session passed carrier and
 voltage QC, so L470 enters the primary descriptive pool and both 565 channels
 enter the lick-trial reward pool. Miss trials remain excluded from the default
 565 pool and are analyzed separately.
+
+### Canonical spout-position colors
+
+All photometry and behavior plots use the same spout-position palette as
+`widefield_pipeline/wfield_local/spout_behavior.py`. Side determines hue and
+distance determines lightness: near L/ipsilateral `#005ab1`, near center
+`#5c0083`, near R/contralateral `#880c25`, far L/ipsilateral `#7dbfff`, far
+center `#cb52ff`, and far R/contralateral `#f26f8a`. Physical-position plots
+retain L/center/R labels; hemisphere-relative plots remap L/R to
+ipsilateral/contralateral before assigning these same colors. The mapping is
+centralized in `analysis/position_style.py` so session, pooled, behavior,
+retraction, grant, and deck figures cannot silently diverge.

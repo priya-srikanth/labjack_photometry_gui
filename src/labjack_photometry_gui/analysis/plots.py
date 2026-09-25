@@ -12,19 +12,18 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import numpy as np
-from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
 from labjack_photometry_gui.analysis.align import AlignedTraces
 from labjack_photometry_gui.analysis.behavior import POSITION_NAMES
+from labjack_photometry_gui.analysis.position_style import physical_position_colors
 
 if TYPE_CHECKING:
     import pandas as pd
 
     from labjack_photometry_gui.analysis.pooling import PooledCell
 
-POSITION_COLORMAP = "viridis"
 EVENT_LINE_STYLE = {"color": "0.25", "linewidth": 1.0, "linestyle": "--", "zorder": 1}
 GRID_STYLE = {"color": "0.9", "linewidth": 0.6}
 
@@ -38,14 +37,9 @@ class ChannelPanel:
     position: np.ndarray
 
 
-def position_colors(positions: list[int]) -> dict[int, tuple[float, float, float, float]]:
-    """Map ordered spout positions onto a sequential ramp."""
-    colormap = plt.get_cmap(POSITION_COLORMAP)
-    if len(positions) == 1:
-        return {positions[0]: colormap(0.5)}
-    # Stop short of the very lightest end, which is hard to see on white.
-    steps = np.linspace(0.12, 0.92, len(positions))
-    return {position: colormap(step) for position, step in zip(positions, steps)}
+def position_colors(positions: list[int]) -> dict[int, str]:
+    """Use the lab-wide side-hue/distance-lightness spout palette."""
+    return physical_position_colors(positions)
 
 
 def plot_mean_by_position(
