@@ -602,3 +602,15 @@ after local validation and server checksum verification:
 to prevent users from opening stale analyses. Generated figures, caches, and
 PowerPoint files remain outside Git; the scripts and scientific decisions are
 version controlled.
+
+### Selected-detector 470 pool through 2026-09-25
+
+The main hemisphere-relative 470 pool uses PS111 R470 and PS113 L470 rather
+than averaging both detectors from recent PS113 sessions. This preserves the
+usable PS111 hemisphere while avoiding dilution by the weaker, more
+oscillatory PS113 R470 traces. Laterality is recoded per detector before
+pooling: ipsilateral is right for PS111 R470 and left for PS113 L470. Bilateral
+results remain audit/sensitivity analyses. The 9/25 session passed carrier and
+voltage QC, so L470 enters the primary descriptive pool and both 565 channels
+enter the lick-trial reward pool. Miss trials remain excluded from the default
+565 pool and are analyzed separately.

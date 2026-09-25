@@ -48,23 +48,21 @@ ARCHIVED_0923 = Path(
 ARCHIVED_0924 = Path(
     r"\\research.files.med.harvard.edu\Neurobio\MICROSCOPE\Priya\Photometry\data\PS113_20260924_105420.h5"
 )
+ARCHIVED_0925 = Path(
+    r"\\research.files.med.harvard.edu\Neurobio\MICROSCOPE\Priya\Photometry\data\PS113_20260925_145324.h5"
+)
 SELECTION_470_ALL_LICKS = SELECTION_470 + (
     (ARCHIVED_0921, "L_470_detect", "left", 211.0, "9/21 PS113 L470"),
-    (ARCHIVED_0921, "R_470_detect", "right", 211.0, "9/21 PS113 R470"),
     (ARCHIVED_0922, "L_470_detect", "left", 211.0, "9/22 PS113 L470"),
-    (ARCHIVED_0922, "R_470_detect", "right", 211.0, "9/22 PS113 R470"),
     (ARCHIVED_0923, "L_470_detect", "left", 211.0, "9/23 PS113 L470"),
-    (ARCHIVED_0923, "R_470_detect", "right", 211.0, "9/23 PS113 R470"),
     (ARCHIVED_0924, "L_470_detect", "left", 211.0, "9/24 PS113 L470"),
-    (ARCHIVED_0924, "R_470_detect", "right", 211.0, "9/24 PS113 R470"),
+    (ARCHIVED_0925, "L_470_detect", "left", 211.0, "9/25 PS113 L470"),
 )
 SELECTION_470_FIRST_BOUT = SELECTION_470 + (
     (ARCHIVED_0922, "L_470_detect", "left", 211.0, "9/22 PS113 L470"),
-    (ARCHIVED_0922, "R_470_detect", "right", 211.0, "9/22 PS113 R470"),
     (ARCHIVED_0923, "L_470_detect", "left", 211.0, "9/23 PS113 L470"),
-    (ARCHIVED_0923, "R_470_detect", "right", 211.0, "9/23 PS113 R470"),
     (ARCHIVED_0924, "L_470_detect", "left", 211.0, "9/24 PS113 L470"),
-    (ARCHIVED_0924, "R_470_detect", "right", 211.0, "9/24 PS113 R470"),
+    (ARCHIVED_0925, "L_470_detect", "left", 211.0, "9/25 PS113 L470"),
 )
 SELECTION_565 = (
     (Path(r"C:\Users\SabatiniLab\data\PS113_2_20260911_192740.h5"), "L_565_detect", "left", 331.0, "9/11 PS113-2 L565"),
@@ -81,6 +79,12 @@ SELECTION_565 = (
     (ARCHIVED_0921, "R_565_detect", "right", 331.0, "9/21 PS113 R565"),
     (ARCHIVED_0922, "L_565_detect", "left", 331.0, "9/22 PS113 L565"),
     (ARCHIVED_0922, "R_565_detect", "right", 331.0, "9/22 PS113 R565"),
+    (ARCHIVED_0923, "L_565_detect", "left", 331.0, "9/23 PS113 L565"),
+    (ARCHIVED_0923, "R_565_detect", "right", 331.0, "9/23 PS113 R565"),
+    (ARCHIVED_0924, "L_565_detect", "left", 331.0, "9/24 PS113 L565"),
+    (ARCHIVED_0924, "R_565_detect", "right", 331.0, "9/24 PS113 R565"),
+    (ARCHIVED_0925, "L_565_detect", "left", 331.0, "9/25 PS113 L565"),
+    (ARCHIVED_0925, "R_565_detect", "right", 331.0, "9/25 PS113 R565"),
 )
 
 
@@ -106,7 +110,7 @@ def load_entry(spec, event_kind, config, window=WINDOW):
     cache = ROOT / "derived_cache" / path.stem
     with PhotometrySession(path) as session:
         events = extract_events(session)
-        if path in (ARCHIVED_0921, ARCHIVED_0922, ARCHIVED_0923, ARCHIVED_0924):
+        if path in (ARCHIVED_0921, ARCHIVED_0922, ARCHIVED_0923, ARCHIVED_0924, ARCHIVED_0925):
             # The raw file is archived on the server, but demodulation was
             # completed before local cleanup. Reuse that source-validated
             # envelope so adding an event family does not re-read gigabytes.
@@ -115,6 +119,7 @@ def load_entry(spec, event_kind, config, window=WINDOW):
                 ARCHIVED_0922: "PS113_20260922_analysis",
                 ARCHIVED_0923: "PS113_20260923_analysis",
                 ARCHIVED_0924: "PS113_20260924_analysis",
+                ARCHIVED_0925: "PS113_20260925_analysis",
             }
             prior_dirs = (
                 ROOT / "derived_cache" / path.stem,
@@ -506,8 +511,8 @@ def main():
     config = load_analysis_config(CONFIG)
     config = replace(config, demodulation=replace(config.demodulation, target_rate_hz=RATE))
     families = [
-        ("470 nm: descriptive GCaMP pool through 9/24", SELECTION_470, ("all licks", "first lick of bout"), "470", (-1.0, 1.0)),
-        ("565 nm: PS113 L + R (9/11, 9/14-9/17, 9/21-9/22)", SELECTION_565, ("reward", "first lick after reward"), "565", (-1.0, 3.5)),
+        ("470 nm: descriptive GCaMP pool through 9/25", SELECTION_470, ("all licks", "first lick of bout"), "470", (-1.0, 1.0)),
+        ("565 nm: selected PS113 sessions through 9/25", SELECTION_565, ("reward", "first lick after reward"), "565", (-1.0, 3.5)),
     ]
     all_metrics = {"rate_hz": RATE, "smoothing_ms": SMOOTH_MS, "baseline_s": BASELINE, "groups": GROUPS}
     for title, specs, events, short, window in families:

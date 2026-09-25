@@ -27,6 +27,9 @@ SESSIONS = (
     (Path(r"C:\Users\SabatiniLab\data\PS113_20260917_104145.h5"), "9/17 PS113"),
     (Path(r"\\research.files.med.harvard.edu\Neurobio\MICROSCOPE\Priya\Photometry\data\PS113_20260921_105243.h5"), "9/21 PS113"),
     (Path(r"\\research.files.med.harvard.edu\Neurobio\MICROSCOPE\Priya\Photometry\data\PS113_20260922_112325.h5"), "9/22 PS113"),
+    (Path(r"\\research.files.med.harvard.edu\Neurobio\MICROSCOPE\Priya\Photometry\data\PS113_20260923_110911.h5"), "9/23 PS113"),
+    (Path(r"\\research.files.med.harvard.edu\Neurobio\MICROSCOPE\Priya\Photometry\data\PS113_20260924_105420.h5"), "9/24 PS113"),
+    (Path(r"\\research.files.med.harvard.edu\Neurobio\MICROSCOPE\Priya\Photometry\data\PS113_20260925_145324.h5"), "9/25 PS113"),
 )
 GROUPS = ("near ipsi", "near mid", "near contra", "far ipsi", "far mid", "far contra")
 COLORS = ("#2166ac", "#67a9cf", "#d1e5f0", "#ef8a62", "#b2182b", "#7f0000")

@@ -28,6 +28,7 @@ SESSIONS = (
     (Path(r"\\research.files.med.harvard.edu\Neurobio\MICROSCOPE\Priya\Photometry\data\PS113_20260921_105243.h5"), "9/21"),
     (Path(r"\\research.files.med.harvard.edu\Neurobio\MICROSCOPE\Priya\Photometry\data\PS113_20260922_112325.h5"), "9/22"),
     (Path(r"\\research.files.med.harvard.edu\Neurobio\MICROSCOPE\Priya\Photometry\data\PS113_20260924_105420.h5"), "9/24"),
+    (Path(r"\\research.files.med.harvard.edu\Neurobio\MICROSCOPE\Priya\Photometry\data\PS113_20260925_145324.h5"), "9/25"),
 )
 CHANNELS = ("L_565_detect", "R_565_detect")
 RESPONSE_WINDOW = (0.05, 0.75)
