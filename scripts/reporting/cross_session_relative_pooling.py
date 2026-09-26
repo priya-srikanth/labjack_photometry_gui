@@ -347,8 +347,10 @@ def plot_relative_overlay_grant(entries_by_event, family, output_stem):
         ax.axvline(0, color="#444444", lw=1.0, ls="--", zorder=0)
         ax.axhline(0, color="#777777", lw=.7, zorder=0)
         ax.set_title(event, fontsize=13, fontweight="bold", pad=5)
-        ax.tick_params(axis="both", labelsize=11, width=1.0, length=3.5)
+        ax.tick_params(axis="both", labelsize=11, width=1.0, length=3.5,
+                       labelleft=True)
         ax.set_xlabel("Time from event (ms)", fontsize=12)
+        ax.set_ylabel("Response (rolling z-score)", fontsize=12, labelpad=7)
         # Keep the full time range but make the physical panel less elongated
         # when the figure is placed as a small grant-page panel.
         ax.set_box_aspect(.82)
@@ -357,7 +359,6 @@ def plot_relative_overlay_grant(entries_by_event, family, output_stem):
             ax.set_xlim(-500, 1000)
         else:
             ax.set_xlim(-1000, 3000)
-    axes[0][0].set_ylabel("Response (rolling z-score)", fontsize=12)
     handles, labels = axes[0][0].get_legend_handles_labels()
     fig.legend(handles, labels, loc="lower center", bbox_to_anchor=(0.5, -0.01),
                frameon=False, ncol=3, fontsize=10, handlelength=2.0,
@@ -365,7 +366,7 @@ def plot_relative_overlay_grant(entries_by_event, family, output_stem):
     wavelength = "470 nm" if family.startswith("470") else "565 nm"
     fig.suptitle(f"{wavelength}: response by spout position", fontsize=15,
                  fontweight="bold", y=.995)
-    fig.subplots_adjust(left=.105, right=.985, top=.82, bottom=.30, wspace=.16)
+    fig.subplots_adjust(left=.105, right=.985, top=.82, bottom=.30, wspace=.34)
     for suffix in ("png", "pdf", "svg"):
         kwargs = {"dpi": 600} if suffix == "png" else {}
         fig.savefig(output_stem.with_suffix(f".{suffix}"), bbox_inches="tight",

@@ -593,6 +593,9 @@ minimal spines, and a compact two-row legend. Each figure is saved as a 600-dpi 
 plus editable PDF and SVG. The 470-nm view spans -0.5 to +1.0 s, while the
 565-nm view spans -1.0 to +3.0 s to retain the slower response evolution while
 remaining compact enough for grant-page placement.
+Both grant subplots retain independent y-axis ticks, numeric tick labels, and
+axis labels; the wider inter-panel gutter prevents the right-panel label from
+overlapping the left panel.
 Grant-only 565-nm display smoothing is 80 ms and is configurable with
 `PHOTOMETRY_GRANT_565_SMOOTH_MS`; this does not alter the underlying aligned
 traces, normalization, or summary statistics.
