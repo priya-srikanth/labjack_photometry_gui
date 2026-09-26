@@ -341,8 +341,8 @@ def plot_relative_overlay_grant(entries_by_event, family, output_stem):
             else:
                 pooled, sem = display_smooth(pooled, family), display_smooth(sem, family)
             time_ms = entries[0]["time"] * 1000
-            ax.plot(time_ms, pooled, color=color, lw=.8, label=group)
-            ax.fill_between(time_ms, pooled-sem, pooled+sem, color=color, alpha=.15,
+            ax.plot(time_ms, pooled, color=color, lw=.8, alpha=.78, label=group)
+            ax.fill_between(time_ms, pooled-sem, pooled+sem, color=color, alpha=.08,
                             linewidth=0)
         ax.axvline(0, color="#444444", lw=1.0, ls="--", zorder=0)
         ax.axhline(0, color="#777777", lw=.7, zorder=0)
@@ -356,7 +356,7 @@ def plot_relative_overlay_grant(entries_by_event, family, output_stem):
         if family.startswith("470"):
             ax.set_xlim(-500, 1000)
         else:
-            ax.set_xlim(-1000, 3500)
+            ax.set_xlim(-1000, 3000)
     axes[0][0].set_ylabel("Response (rolling z-score)", fontsize=12)
     handles, labels = axes[0][0].get_legend_handles_labels()
     fig.legend(handles, labels, loc="lower center", bbox_to_anchor=(0.5, -0.01),
