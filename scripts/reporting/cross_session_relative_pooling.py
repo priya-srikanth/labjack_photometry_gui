@@ -23,6 +23,7 @@ CONFIG = Path(r"C:\Users\SabatiniLab\Documents\Codex\RigSoftware\labjack_photome
 RATE = 200.0
 SMOOTH_MS = 40.0
 SMOOTH_470_MS = float(os.environ.get("PHOTOMETRY_470_SMOOTH_MS", "80"))
+GRANT_470_SMOOTH_MS = float(os.environ.get("PHOTOMETRY_GRANT_470_SMOOTH_MS", "100"))
 GRANT_565_SMOOTH_MS = float(os.environ.get("PHOTOMETRY_GRANT_565_SMOOTH_MS", "80"))
 OVERLAY_LINEWIDTH = float(os.environ.get("PHOTOMETRY_POSITION_OVERLAY_LW", "2.8"))
 GRANT_FIG_DIR = ROOT / "grant_figs"
@@ -317,7 +318,7 @@ def plot_relative_overlay_grant(entries_by_event, family, output_stem):
     geometry and typography differ.  PDF and SVG retain editable vectors,
     while the 600-dpi PNG is convenient for PowerPoint and Word.
     """
-    fig, axes = plt.subplots(1, len(entries_by_event), figsize=(7.4, 3.35),
+    fig, axes = plt.subplots(1, len(entries_by_event), figsize=(6.3, 4.2),
                              sharex=True, sharey=True, squeeze=False)
     for ax, (event, entries) in zip(axes[0], entries_by_event.items()):
         for group, color in zip(GROUPS, COLORS):
@@ -330,14 +331,17 @@ def plot_relative_overlay_grant(entries_by_event, family, output_stem):
             if not unit_means:
                 continue
             pooled, sem, _ = weighted_mean_sem(unit_means, durations)
-            if family.startswith("565"):
-                sigma = GRANT_565_SMOOTH_MS / 1000.0 * RATE
+            if family.startswith(("470", "565")):
+                grant_smoothing_ms = (
+                    GRANT_470_SMOOTH_MS if family.startswith("470") else GRANT_565_SMOOTH_MS
+                )
+                sigma = grant_smoothing_ms / 1000.0 * RATE
                 pooled = gaussian_filter1d(pooled, sigma=sigma, mode="nearest")
                 sem = gaussian_filter1d(sem, sigma=sigma, mode="nearest")
             else:
                 pooled, sem = display_smooth(pooled, family), display_smooth(sem, family)
             time_ms = entries[0]["time"] * 1000
-            ax.plot(time_ms, pooled, color=color, lw=1.05, label=group)
+            ax.plot(time_ms, pooled, color=color, lw=.8, label=group)
             ax.fill_between(time_ms, pooled-sem, pooled+sem, color=color, alpha=.15,
                             linewidth=0)
         ax.axvline(0, color="#444444", lw=1.0, ls="--", zorder=0)
@@ -345,6 +349,9 @@ def plot_relative_overlay_grant(entries_by_event, family, output_stem):
         ax.set_title(event, fontsize=13, fontweight="bold", pad=5)
         ax.tick_params(axis="both", labelsize=11, width=1.0, length=3.5)
         ax.set_xlabel("Time from event (ms)", fontsize=12)
+        # Keep the full time range but make the physical panel less elongated
+        # when the figure is placed as a small grant-page panel.
+        ax.set_box_aspect(.82)
         ax.spines[["top", "right"]].set_visible(False)
         if family.startswith("470"):
             ax.set_xlim(-500, 1000)
